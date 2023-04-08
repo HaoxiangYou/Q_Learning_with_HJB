@@ -1,2 +1,2 @@
-# Q_Learning_with_HJB
-This is a new Q-learning framework with HJB function
+# Value_Learning_with_HJB
+This is a new Value function learning framework with HJB
