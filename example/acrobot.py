@@ -20,13 +20,12 @@ def test_nn_policy(nn_policy:VGradientPolicy, acrobot:Acrobot, x0:np.ndarray, en
     with torch.no_grad():
         for i in range(1, xs.shape[0]):
             us[i-1] = (nn_policy.get_control_efforts(torch.tensor(xs[i-1].astype(np.float32)).unsqueeze(0))).numpy()
-            xs[i] = acrobot.simulate(xs[i-1],us[i-1],dt)
             if energy_shaping_controller:
                 us_energy_shaping[i-1] = energy_shaping_controller.get_control_efforts(xs[-1])
+            xs[i] = acrobot.simulate(xs[i-1],us[i-1],dt)
 
     xs[:,0] = np.arctan2(np.sin(xs[:,0]), np.cos(xs[:,0]))
     xs[:,1] = np.arctan2(np.sin(xs[:,1]), np.cos(xs[:,1]))
-    e = np.array([acrobot.energy(x) for x in xs])
 
     knee = p['l1']*np.cos(xs[:,0]-np.pi/2), p['l1']*np.sin(xs[:,0]-np.pi/2)
     toe = p['l1']*np.cos(xs[:,0]-np.pi/2) + p['l2']*np.cos(xs[:,0]+xs[:,1]-np.pi/2), \
@@ -58,7 +57,7 @@ def test_nn_policy(nn_policy:VGradientPolicy, acrobot:Acrobot, x0:np.ndarray, en
     plt.show()
     plt.close()
 
-    return xs, e
+    return xs
 
 def main():
 
