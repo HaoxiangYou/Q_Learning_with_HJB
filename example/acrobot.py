@@ -21,11 +21,11 @@ def test_nn_policy(nn_policy:VGradientPolicy, acrobot:Acrobot, x0:np.ndarray, en
         for i in range(1, xs.shape[0]):
             us[i-1] = (nn_policy.get_control_efforts(torch.tensor(xs[i-1].astype(np.float32)).unsqueeze(0))).numpy()
             if energy_shaping_controller:
-                us_energy_shaping[i-1] = energy_shaping_controller.get_control_efforts(xs[-1])
+                us_energy_shaping[i-1] = energy_shaping_controller.get_control_efforts(xs[i-1])
             xs[i] = acrobot.simulate(xs[i-1],us[i-1],dt)
-
-    xs[:,0] = np.arctan2(np.sin(xs[:,0]), np.cos(xs[:,0]))
-    xs[:,1] = np.arctan2(np.sin(xs[:,1]), np.cos(xs[:,1]))
+            # wrap angle to -np.pi, np.pi
+            xs[i,0] = np.arctan2(np.sin(xs[i,0]), np.cos(xs[i,0]))
+            xs[i,1] = np.arctan2(np.sin(xs[i,1]), np.cos(xs[i,1]))
 
     knee = p['l1']*np.cos(xs[:,0]-np.pi/2), p['l1']*np.sin(xs[:,0]-np.pi/2)
     toe = p['l1']*np.cos(xs[:,0]-np.pi/2) + p['l2']*np.cos(xs[:,0]+xs[:,1]-np.pi/2), \
@@ -72,8 +72,8 @@ def main():
 
     # Create warmup dataset from energy shaping
     t_span = np.arange(0,5,dt)
-    # xs_energy_shaping = [np.array([0.001, 0, 0, 0])]
-    xs_energy_shaping = [np.array([np.pi-0.1,0,0.2,0])]
+    xs_energy_shaping = [np.array([0.001, 0, 0, 0])]
+    # xs_energy_shaping = [np.array([np.pi-0.1,0,0.2,0])]
     us_energy_shaping = []
     for i in range(t_span.shape[0]-1):
         us_energy_shaping.append(energy_shaping_controller.get_control_efforts(xs_energy_shaping[-1]))

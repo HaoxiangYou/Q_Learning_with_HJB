@@ -162,7 +162,7 @@ class VGradientPolicy(Controller):
             dataset_size = 0
             
             # Use expert data to warm-up the VG
-            if epoch <= self.warm_up_epochs:
+            if epoch < self.warm_up_epochs:
                 dataset_size = len(expert_dataloader)
                 for xs ,us in expert_dataloader:
                     loss = self.HJB_loss(xs,us)
