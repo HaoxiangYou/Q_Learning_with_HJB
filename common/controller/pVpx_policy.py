@@ -66,6 +66,13 @@ class VGradientPolicy(Controller):
         # Load system
         self.dynamics = dynamics
         self.state_dim, self.control_dim = self.dynamics.get_dimension()
+        umin, umax = self.dynamics.get_control_limit()
+        assert umin.shape[0] == self.control_dim
+        assert umax.shape[0] == self.control_dim
+        self.umin = torch.tensor(umin).to(torch.float32)
+        self.umax = torch.tensor(umax).to(torch.float32)
+
+        # Setup nerual network
         self.VGradient = VGradient(self.state_dim, hidden_size)
         self.loss_fn = nn.MSELoss()
         self.optimizer = torch.optim.SGD(self.VGradient.parameters(), lr=lr, weight_decay=weight_decay, momentum=momentum)
@@ -109,7 +116,11 @@ class VGradientPolicy(Controller):
         # f_2 is in n X self.control X self.state_dim, the self.VGradient(xs) is n X self.state_dim. 
         # So I have to increase the dim of pVpx to be n X self.state_dim X 1
         us = -torch.linalg.inv(self.R)/2 @ ( (torch.from_numpy(np.swapaxes(f_2,1,2).astype(np.float32)) @ self.VGradient(xs).unsqueeze(2)))
-        return us.squeeze(2)
+        us = us.squeeze(2)
+
+        us = torch.clip(us, min=self.umin, max=self.umax)
+
+        return us
     
     def HJB_loss(self, xs, us):
         """

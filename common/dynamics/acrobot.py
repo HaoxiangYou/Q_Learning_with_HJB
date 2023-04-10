@@ -101,6 +101,9 @@ class Acrobot(Dynamics):
 
         return f_1, f_2
 
+    def get_control_limit(self) -> Tuple[np.ndarray, np.ndarray]:
+        return -np.array([self.umax]), np.array([self.umax])
+
     def dynamics_step(self, x, u):
         """
             Caclulate x_dot for single x and u

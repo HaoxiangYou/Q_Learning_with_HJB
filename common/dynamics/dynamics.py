@@ -9,3 +9,6 @@ class Dynamics:
 
     def get_control_affine_matrix(self, x) -> Tuple[np.ndarray, np.ndarray]:
         raise NotImplementedError
+    
+    def get_control_limit(self,) -> Tuple[np.ndarray, np.ndarray]:
+        raise NotImplementedError 
