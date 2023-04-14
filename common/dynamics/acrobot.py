@@ -75,7 +75,7 @@ class Acrobot(Dynamics):
             xs = xs.reshape(1,-1)
         # If x is a tensor turn it into arrary
         if isinstance(xs, torch.Tensor):
-            xs.numpy()
+            xs = xs.numpy()
 
         n = xs.shape[0]
 
