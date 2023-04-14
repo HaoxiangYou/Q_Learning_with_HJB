@@ -2,7 +2,10 @@ import numpy as np
 import scipy as sp
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-from common.dynamics.acrobot import Acrobot, wrap, p, dt, x0
+from common.dynamics.acrobot import Acrobot, p, dt, x0
+
+def wrap(q):
+    return (q + np.pi) %(2*np.pi) - np.pi
 
 class AcrobotEnergyShapingController():
     """
