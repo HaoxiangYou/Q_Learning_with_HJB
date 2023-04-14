@@ -28,7 +28,7 @@ class Dynamics:
     def get_G(self, x:np.ndarray) -> np.ndarray:
         raise NotImplementedError
     
-    def get_B(self, x:np.ndarray) -> np.ndarray:
+    def get_B(self) -> np.ndarray:
         raise NotImplementedError
     
     def get_control_affine_matrix(self, xs) -> Tuple[np.ndarray, np.ndarray]:

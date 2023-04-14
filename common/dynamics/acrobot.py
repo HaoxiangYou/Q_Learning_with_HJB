@@ -53,7 +53,7 @@ class Acrobot(Dynamics):
                         self.m2*self.g*self.l2/2*np.sin(x[0]+x[1])])
         return G
     
-    def get_B(self, x: np.ndarray) -> np.ndarray:
+    def get_B(self) -> np.ndarray:
         B = np.array([0, 1])
         return B
 
