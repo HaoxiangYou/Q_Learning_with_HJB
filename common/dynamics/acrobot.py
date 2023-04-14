@@ -36,24 +36,24 @@ class Acrobot(Dynamics):
     def get_control_limit(self) -> Tuple[np.ndarray, np.ndarray]:
         return -np.array([self.umax]), np.array([self.umax])
 
-    def get_M(self, x):
+    def get_M(self, x: np.ndarray) -> np.ndarray:
         M = np.array([[self.I1 + self.I2 + self.m2*self.l1**2 + 2*self.m2*self.l1*self.l2/2*np.cos(x[1]),
                             self.I2 + self.m2*self.l1*self.l2/2*np.cos(x[1])],
                     [self.I2 + self.m2*self.l1*self.l2/2*np.cos(x[1]), self.I2]])
         return M 
     
-    def get_C(self, x):
+    def get_C(self, x: np.ndarray) -> np.ndarray:
         q, dq = x[:self.dim], x[self.dim:]
         C = np.array([[-2*self.m2*self.l1*self.l2/2*np.sin(q[1])*dq[1], -self.m2*self.l1*self.l2/2*np.sin(q[1])*dq[1]],
                     [self.m2*self.l1*self.l2/2*np.sin(q[1])*dq[0], 0]])
         return C
 
-    def get_G(self, x):
+    def get_G(self, x: np.ndarray) -> np.ndarray:
         G = np.array([(self.m1*self.l1/2 + self.m2*self.l1)*self.g*np.sin(x[0]) + self.m2*self.g*self.l2/2*np.sin(x[0]+x[1]),
                         self.m2*self.g*self.l2/2*np.sin(x[0]+x[1])])
         return G
     
-    def get_B(self,):
+    def get_B(self, x: np.ndarray) -> np.ndarray:
         B = np.array([0, 1])
         return B
 
