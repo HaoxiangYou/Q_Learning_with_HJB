@@ -12,6 +12,7 @@ class AcrobotEnergyShapingController():
     """
     def __init__(self, acrobot_system: Acrobot, Q=np.eye(4), R=np.eye(1), eps=1000, K=np.array([1, 2, 1])):
         self.acrobot = acrobot_system 
+        self.xf = np.array([np.pi,0,0,0])
 
         # Hyperparameters for controllers
         self.K = K
@@ -30,7 +31,7 @@ class AcrobotEnergyShapingController():
             Blin: 4X1 matrix 
         """
 
-        M = self.acrobot.get_M(self.acrobot.xf)
+        M = self.acrobot.get_M(self.xf)
         B = self.acrobot.get_B()
 
         M_inv = np.linalg.inv(M)
@@ -88,7 +89,7 @@ class AcrobotEnergyShapingController():
         
         G = self.acrobot.get_G(x)
 
-        ubar = (self.acrobot.energy(x) - self.acrobot.energy(self.acrobot.xf))*dq[0]
+        ubar = (self.acrobot.energy(x) - self.acrobot.energy(self.xf))*dq[0]
 
         ddq2_d = np.dot(self.K, np.array([-wrap(q[1]), -dq[1], ubar]))
 
@@ -106,7 +107,7 @@ class AcrobotEnergyShapingController():
             u: control effort applied to the robot, a scalar number
         """
 
-        dx = np.hstack([wrap((x - self.acrobot.xf)[:self.acrobot.dim]), (x - self.acrobot.xf)[self.acrobot.dim:]])
+        dx = np.hstack([wrap((x - self.xf)[:self.acrobot.dim]), (x - self.xf)[self.acrobot.dim:]])
 
         K, P = self.get_lqr_term()
 
@@ -127,7 +128,7 @@ def test_acrobot(acrobot:Acrobot, acrobot_controller:AcrobotEnergyShapingControl
 
     xs = np.zeros((t.shape[0], x0.shape[0]))
     us = np.zeros((t.shape[0]-1,))
-    xs[0] = x0
+    xs[0] = np.array([0.001, 0, 0, 0])
     
     for i in range(1, xs.shape[0]):
         us[i-1] = acrobot_controller.get_control_efforts(xs[i-1])

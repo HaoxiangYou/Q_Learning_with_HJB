@@ -14,7 +14,6 @@ p = {   'l1':0.5, 'l2':1,
         'umax': 25,
         'g': 10,
         'dt':dt,
-        'xf':xf,
     }
 
 # From Russ Tedrake's notes
@@ -30,7 +29,7 @@ class Acrobot(Dynamics):
         self.g = 10
         self.m1, self.m2, self.l1, self.l2, self.I1, self.I2, self.umax = \
             self.p['m1'], self.p['m2'], self.p['l1'], self.p['l2'], self.p['I1'], self.p['I2'], self.p['umax']
-        self.g, self.xf, self.dt = self.p['g'], self.p['xf'], self.p['dt']
+        self.g, self.dt = self.p['g'], self.p['dt']
 
     def get_dimension(self) -> Tuple[int, int]:
         return self.dim*2, 1
