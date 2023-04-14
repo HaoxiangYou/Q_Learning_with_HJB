@@ -15,9 +15,6 @@ p = {   'l1':0.5, 'l2':1,
         'xf':xf,
     }
 
-def wrap(q):
-    return (q + np.pi) %(2*np.pi) - np.pi
-
 # From Russ Tedrake's notes
 class Acrobot(Dynamics):
 
