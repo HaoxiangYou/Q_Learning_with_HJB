@@ -1,6 +1,8 @@
 import numpy as np
 from common.dynamics.dynamics import Dynamics
 from typing import Tuple
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 
 dt = 0.05
 x0 = np.array([0.001, 0, 0, 0])
@@ -68,3 +70,31 @@ class Acrobot(Dynamics):
             + (self.I2 + self.m2*self.l1*self.l2/2*c2)*dq[0]*dq[1]
         U  = -self.m1*self.g*self.l1/2*c1 - self.m2*self.g*(self.l1*c1 + self.l2/2*np.cos(q[0]+q[1]))
         return T1 + T2 + U
+    
+    def plot_trajectory(self, ts:np.ndarray, xs:np.ndarray, margin=0.5):
+        fig = plt.figure()
+        ax = plt.axes()
+
+        knees = self.l1*np.cos(xs[:,0]-np.pi/2), self.l1*np.sin(xs[:,0]-np.pi/2)
+        toes = self.l1*np.cos(xs[:,0]-np.pi/2) + self.l2*np.cos(xs[:,0]+xs[:,1]-np.pi/2), \
+            self.l1*np.sin(xs[:,0]-np.pi/2) + self.l2*np.sin(xs[:,0]+xs[:,1]-np.pi/2)
+
+
+        def draw_frame(i):
+            ax.clear()
+            ax.set_xlim(-(self.l1+self.l2+margin), (self.l1+self.l2+margin))
+            ax.set_ylim(-(self.l1+self.l2+margin), (self.l1+self.l2+margin))
+            ax.axhline(y=0, color='r', linestyle= '-')
+            ax.plot(0,0,'bo', label="joint")
+            ax.plot(knees[0][i], knees[1][i], 'bo')
+            ax.plot(knees[0][i]/2, knees[1][i]/2, 'go', label="center of mass")
+            ax.plot([0, knees[0][i]], [0, knees[1][i]], 'k-', label="linkage")
+            ax.plot(toes[0][i], toes[1][i], 'bo')
+            ax.plot((toes[0][i] + knees[0][i])/2, (toes[1][i] + knees[1][i])/2, 'go')
+            ax.plot([knees[0][i],toes[0][i]], [knees[1][i], toes[1][i]], 'k-')
+            ax.legend()
+            ax.set_title("{:.1f}s".format(ts[i]))
+        
+        anim = animation.FuncAnimation(fig, draw_frame, frames=ts.shape[0], repeat=False, interval=self.dt*1000)
+
+        return anim, fig

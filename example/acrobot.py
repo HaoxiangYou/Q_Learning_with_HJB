@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch
 from common.dynamics.acrobot import Acrobot, p, dt
-from common.controller.acrobot_energy_shaping import AcrobotEnergyShapingController, plot_trajectory
+from common.controller.acrobot_energy_shaping import AcrobotEnergyShapingController
 from common.controller.pVpx_policy import VGradientPolicy
 
 def test_nn_policy(nn_policy:VGradientPolicy, acrobot:Acrobot, x0:np.ndarray, energy_shaping_controller=None):
@@ -31,7 +31,7 @@ def test_nn_policy(nn_policy:VGradientPolicy, acrobot:Acrobot, x0:np.ndarray, en
     toe = p['l1']*np.cos(xs[:,0]-np.pi/2) + p['l2']*np.cos(xs[:,0]+xs[:,1]-np.pi/2), \
         p['l1']*np.sin(xs[:,0]-np.pi/2) + p['l2']*np.sin(xs[:,0]+xs[:,1]-np.pi/2)
 
-    anim, fig = plot_trajectory(t, knee, toe, p, dt)
+    anim, fig = acrobot.plot_trajectory(t, xs)
 
     plt.figure(2); 
     plt.clf()

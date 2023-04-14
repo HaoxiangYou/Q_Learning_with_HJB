@@ -1,7 +1,6 @@
 import numpy as np
 import scipy as sp
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 from common.dynamics.acrobot import Acrobot, p, dt, x0
 
 def wrap(q):
@@ -119,35 +118,8 @@ class AcrobotEnergyShapingController():
         u = np.clip(u, -self.acrobot.umax, self.acrobot.umax)
         
         return u
-    
-def plot_trajectory(t:np.ndarray, knees:np.ndarray, toes:np.ndarray, params:dict, dt:float):
-    l1 = params['l1']
-    l2 = params['l2']
-    threshold = 0.5
 
-    fig = plt.figure(1)
-    ax = plt.axes()
-
-    def draw_frame(i):
-        ax.clear()
-        ax.set_xlim(-(l1+l2+threshold), (l1+l2+threshold))
-        ax.set_ylim(-(l1+l2+threshold), (l1+l2+threshold))
-        ax.axhline(y=0, color='r', linestyle= '-')
-        ax.plot(0,0,'bo', label="joint")
-        ax.plot(knees[0][i], knees[1][i], 'bo')
-        ax.plot(knees[0][i]/2, knees[1][i]/2, 'go', label="center of mass")
-        ax.plot([0, knees[0][i]], [0, knees[1][i]], 'k-', label="linkage")
-        ax.plot(toes[0][i], toes[1][i], 'bo')
-        ax.plot((toes[0][i] + knees[0][i])/2, (toes[1][i] + knees[1][i])/2, 'go')
-        ax.plot([knees[0][i],toes[0][i]], [knees[1][i], toes[1][i]], 'k-')
-        ax.legend()
-        ax.set_title("{:.1f}s".format(t[i]))
-    
-    anim = animation.FuncAnimation(fig, draw_frame, frames=t.shape[0], repeat=False, interval=dt*1000)
-
-    return anim, fig
-
-def test_acrobot(acrobot, acrobot_controller):
+def test_acrobot(acrobot:Acrobot, acrobot_controller:AcrobotEnergyShapingController):
 
     t0 = 0
     tf = 25
@@ -155,7 +127,7 @@ def test_acrobot(acrobot, acrobot_controller):
 
     xs = np.zeros((t.shape[0], x0.shape[0]))
     us = np.zeros((t.shape[0]-1,))
-    xs[0] = np.array([np.pi-0.1, 0, 0.2,0])
+    xs[0] = x0
     
     for i in range(1, xs.shape[0]):
         us[i-1] = acrobot_controller.get_control_efforts(xs[i-1])
@@ -169,7 +141,7 @@ def test_acrobot(acrobot, acrobot_controller):
     toe = p['l1']*np.cos(xs[:,0]-np.pi/2) + p['l2']*np.cos(xs[:,0]+xs[:,1]-np.pi/2), \
         p['l1']*np.sin(xs[:,0]-np.pi/2) + p['l2']*np.sin(xs[:,0]+xs[:,1]-np.pi/2)
 
-    anim, fig = plot_trajectory(t, knee, toe, p, dt)
+    anim, fig = acrobot.plot_trajectory(t, xs)
 
     plt.figure(2); plt.clf()
     plt.plot(knee[0], knee[1], 'k.-', lw=0.5, label='knee')
