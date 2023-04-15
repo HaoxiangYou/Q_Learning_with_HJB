@@ -42,7 +42,7 @@ class StatesDataset(Dataset):
 
 class VGradientPolicy(Controller):
     
-    def __init__(self, dynamics:Dynamics, Q:np.ndarray, R:np.ndarray) -> None:
+    def __init__(self, dynamics:Dynamics, Q:np.ndarray, R:np.ndarray, xf:np.ndarray) -> None:
         super().__init__()
 
         # Some hyperparameters
@@ -59,6 +59,7 @@ class VGradientPolicy(Controller):
 
         self.Q = torch.tensor(Q).to(torch.float32)
         self.R = torch.tensor(R).to(torch.float32)
+        self.xf = torch.tensor(xf).to(torch.float32)
 
         np.random.seed(seed)
         torch.manual_seed(seed)
@@ -124,9 +125,9 @@ class VGradientPolicy(Controller):
     
     def HJB_loss(self, xs, us):
         """
-            Calculate HJB loss given the xs and us.\,
-            The HJB loss is defined by the L2 norm of:
-                pVpx^T @ f(x,u) + u^T @ R @ u +x^T @ Q @ x
+            Calculate HJB loss given the xs and us,
+            The HJB loss is defined by :
+                pVpx^T @ f(x,u) + u^T @ R @ u + (x-xf)^T @ Q @ (x-xf)
         params:
             xs: n X self.state_dim tensor
             us: n X self.control_dim tensor
@@ -145,7 +146,12 @@ class VGradientPolicy(Controller):
         xdots = f_1 + (f_2 @ us.unsqueeze(2)).squeeze(2) 
         Vdots = torch.bmm(pVpx.unsqueeze(1), xdots.unsqueeze(2)).squeeze()
         us_cost = torch.einsum('bi,ij,bj->b', us, self.R, us)
-        xs_cost = torch.einsum('bi,ij,bj->b', xs, self.Q, xs)
+        
+        # Calculate the difference in angle, note that for acrobot, the first and second state should be convert into -pi, pi
+        xs_diff = xs-self.xf
+        xs_diff[:, :2] = torch.remainder(xs_diff[:, :2], 2*torch.pi) - torch.pi
+        
+        xs_cost = torch.einsum('bi,ij,bj->b', xs_diff, self.Q, xs_diff)
 
         loss = self.loss_fn(Vdots + us_cost, -xs_cost)
         return loss

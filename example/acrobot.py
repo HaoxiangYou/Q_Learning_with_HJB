@@ -65,9 +65,10 @@ def main():
 
     Q = np.eye(4)
     R = np.eye(1)
+    xf = np.array([0, np.pi, 0, 0])
 
     acrobot = Acrobot()
-    nn_policy = VGradientPolicy(acrobot, Q, R)
+    nn_policy = VGradientPolicy(acrobot, Q, R, xf)
     energy_shaping_controller = AcrobotEnergyShapingController(acrobot, Q=Q, R=R)
 
     # Create warmup dataset from energy shaping
