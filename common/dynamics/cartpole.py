@@ -57,17 +57,11 @@ class Cartpole(Dynamics):
         assert xs.shape[1] == 4
 
         if isinstance(xs, torch.Tensor):
-            xs[:, :2] = torch.remainder(xs[:, :2] + torch.pi, 2*torch.pi) - torch.pi
+            xs[:,1] = torch.remainder(xs[:,1] + torch.pi, 2*torch.pi) - torch.pi
         else:
-            xs[:, :2] = np.remainder(xs[:, :2] + torch.pi, 2*np.pi) - np.pi
+            xs[:,1] = np.remainder(xs[:,1] + np.pi, 2*np.pi) - np.pi
 
         return xs
-        
-    def energy(self, x: np.ndarray) -> int:
-        T = 0.5 * (self.mc + self.mp) * x[2]**2 + self.mp * x[2] * x[3] * self.l * np.cos(x[1]) + 0.5 * self.mp * self.l**2 * x[3]**2
-        U = - self.mp * self.g * self.l * np.cos(x[1])
-
-        return T+U
 
     def plot_trajectory(self, ts:np.ndarray, xs:np.ndarray, 
                     cart_width=0.4, cart_height=0.2, pole_radius=0.05, x_range=np.array([-2, 2]), y_range=np.array([-1,3])):
@@ -76,7 +70,7 @@ class Cartpole(Dynamics):
         ax = plt.axes()
 
         def draw_frame(i):
-            pole_x = xs[i, 0] + self.l * np.cos(xs[i,1]-np.pi/2) 
+            pole_x = xs[i,0] + self.l * np.cos(xs[i,1]-np.pi/2) 
             pole_y = self.l * np.sin(xs[i,1]-np.pi/2) 
             
             ax.clear()
