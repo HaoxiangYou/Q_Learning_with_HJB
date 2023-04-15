@@ -70,12 +70,6 @@ class Acrobot(Dynamics):
         return T1 + T2 + U
     
     def states_wrap(self, xs):
-        """
-        wrap the states into valid range
-
-        params:
-            xs: tensor or numpy array in shape n X 4
-        """
 
         assert xs.ndim == 2
         assert xs.shape[1] == self.dim*2 
