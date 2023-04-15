@@ -147,10 +147,9 @@ class VGradientPolicy(Controller):
         Vdots = torch.bmm(pVpx.unsqueeze(1), xdots.unsqueeze(2)).squeeze()
         us_cost = torch.einsum('bi,ij,bj->b', us, self.R, us)
         
-        # Calculate the difference in angle, note that for acrobot, the first and second state should be convert into -pi, pi
-        xs_diff = xs-self.xf
-        xs_diff[:, :2] = torch.remainder(xs_diff[:, :2], 2*torch.pi) - torch.pi
-        
+        # Calculate the difference between current state and desired states, and wrap the value to valid range
+        xs_diff = self.dynamics.states_wrap(xs-self.xf)
+
         xs_cost = torch.einsum('bi,ij,bj->b', xs_diff, self.Q, xs_diff)
 
         loss = self.loss_fn(Vdots + us_cost, -xs_cost)

@@ -31,6 +31,15 @@ class Dynamics:
     def get_B(self) -> np.ndarray:
         raise NotImplementedError
     
+    def states_wrap(self) -> np.ndarray:
+        """
+        wrap the states into valid range
+
+        params:
+            xs: tensor or numpy array in shape n X states_dim
+        """
+        raise NotImplementedError
+    
     def get_control_affine_matrix(self, xs) -> Tuple[np.ndarray, np.ndarray]:
         """
             x_dot = f_1(x) + f_2(x) u

@@ -3,10 +3,9 @@ from common.dynamics.dynamics import Dynamics
 from typing import Tuple
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+import torch
 
 dt = 0.05
-x0 = np.array([0.001, 0, 0, 0])
-xf = np.array([np.pi,0,0,0])
 
 p = {   'l1':0.5, 'l2':1,
         'm1':8, 'm2':8,
@@ -69,6 +68,24 @@ class Acrobot(Dynamics):
             + (self.I2 + self.m2*self.l1*self.l2/2*c2)*dq[0]*dq[1]
         U  = -self.m1*self.g*self.l1/2*c1 - self.m2*self.g*(self.l1*c1 + self.l2/2*np.cos(q[0]+q[1]))
         return T1 + T2 + U
+    
+    def states_wrap(self, xs):
+        """
+        wrap the states into valid range
+
+        params:
+            xs: tensor or numpy array in shape n X 4
+        """
+
+        assert xs.ndim == 2
+        assert xs.shape[1] == self.dim*2 
+
+        if isinstance(xs, torch.Tensor):
+            xs[:, :2] = torch.remainder(xs[:, :2] + torch.pi, 2*torch.pi) - torch.pi
+        else:
+            xs[:, :2] = np.remainder(xs[:, :2] + torch.pi, 2*np.pi) - np.pi
+
+        return xs
     
     def plot_trajectory(self, ts:np.ndarray, xs:np.ndarray, margin=0.5):
         fig = plt.figure()

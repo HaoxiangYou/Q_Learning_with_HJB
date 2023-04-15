@@ -1,7 +1,7 @@
 import numpy as np
 import scipy as sp
 import matplotlib.pyplot as plt
-from common.dynamics.acrobot import Acrobot, p, dt, x0
+from common.dynamics.acrobot import Acrobot, p, dt
 
 def wrap(q):
     return (q + np.pi) %(2*np.pi) - np.pi
@@ -126,7 +126,7 @@ def test_acrobot(acrobot:Acrobot, acrobot_controller:AcrobotEnergyShapingControl
     tf = 25
     t = np.arange(t0, tf, dt)
 
-    xs = np.zeros((t.shape[0], x0.shape[0]))
+    xs = np.zeros((t.shape[0], 4))
     us = np.zeros((t.shape[0]-1,))
     xs[0] = np.array([0.001, 0, 0, 0])
     
