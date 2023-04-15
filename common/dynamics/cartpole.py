@@ -47,12 +47,12 @@ class Cartpole(Dynamics):
         ])
 
     def get_G(self, x: np.ndarray) -> np.ndarray:
-        return np.array([0, self.mp*self.g*self.l*x[1]])
+        return np.array([0, self.mp*self.g*self.l*np.sin(x[1])])
 
     def get_B(self) -> np.ndarray:
         return np.array([1,0])
     
-    def states_wrap(self) -> np.ndarray:
+    def states_wrap(self, xs) -> np.ndarray:
         assert xs.ndim == 2
         assert xs.shape[1] == 4
 
@@ -76,8 +76,8 @@ class Cartpole(Dynamics):
         ax = plt.axes()
 
         def draw_frame(i):
-            pole_x = xs[i, 0] + self.l * np.cos(xs[i,1]+np.pi/2) 
-            pole_y = self.l * np.sin(xs[i,1]+np.pi/2) 
+            pole_x = xs[i, 0] + self.l * np.cos(xs[i,1]-np.pi/2) 
+            pole_y = self.l * np.sin(xs[i,1]-np.pi/2) 
             
             ax.clear()
             ax.axis('equal')
