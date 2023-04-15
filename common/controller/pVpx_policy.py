@@ -100,7 +100,7 @@ class VGradientPolicy(Controller):
     def get_control_efforts(self, xs:torch.Tensor):
         """
         The control input is given by:
-            u = \ underset{u}{argmin } \ nabla V(x)^T f(x,u) + x^T Q x + u^T R u
+            u = \ underset{u}{argmin } \ nabla V(x)^T f(x,u) + delta x^T Q delta x + u^T R u
         Given our system is control affine:
             f(x,u) = f_1(x) + f_2(x) u 
         We can use the first order condition to write control into:
