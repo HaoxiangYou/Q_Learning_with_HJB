@@ -37,6 +37,8 @@ class Dynamics:
 
         params:
             xs: tensor or numpy array in shape n X states_dim
+        returns:
+            wrap states in shape n X states_dim
         """
         raise NotImplementedError
     
@@ -117,4 +119,7 @@ class Dynamics:
         def f(t, x):
             return self.dynamics_step(x,u)
         sol = solve_ivp(f, (0,dt), x, first_step=dt)
-        return sol.y[:,-1].ravel()
+
+        state = self.states_wrap(sol.y[:,-1].ravel()[None,:]).squeeze()
+
+        return state
