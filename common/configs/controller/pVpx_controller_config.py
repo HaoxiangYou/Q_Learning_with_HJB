@@ -22,10 +22,14 @@ class pVpxControllerConfig:
     x0_std: Sequence[float]
     num_of_warmup_trajectory: int
     
-    # states sample
-    xs_mean: Sequence[float]
-    xs_std: Sequence[float]
-    sample_size: int
+    # normalization term
+    normalization_mean: Sequence[float]
+    normalization_std: Sequence[float]
+
+    # trajectory collection
+    max_states: int 
+    max_trajectory_period: int
+    trajectories_per_rollout: int
 
     # system asscociate
     Q: Sequence[Sequence[float]]
@@ -35,8 +39,8 @@ class pVpxControllerConfig:
     def __post_init__(self):
         self.x0_mean = np.array(self.x0_mean)
         self.x0_std = np.array(self.x0_std)
-        self.xs_mean = np.array(self.xs_mean)
-        self.xs_std = np.array(self.xs_std)
+        self.normalization_mean = np.array(self.normalization_mean)
+        self.normalization_std = np.array(self.normalization_std)
         self.Q = np.array(self.Q)
         self.R = np.array(self.R)
         self.xs = np.array(self.xf)

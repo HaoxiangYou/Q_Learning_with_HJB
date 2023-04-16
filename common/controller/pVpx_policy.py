@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 from torch import nn
+from collections import deque
 from torch.utils.data import Dataset, DataLoader
 from common.dynamics.dynamics import Dynamics
 from common.controller.controller import Controller
@@ -42,9 +43,10 @@ class ExpertDataset(Dataset):
         return self.xs[index].astype(np.float32), self.us[index].astype(np.float32)
     
 class StatesDataset(Dataset):
-    def __init__(self, xs:List[np.ndarray]) -> None:
+    def __init__(self, xs:List[np.ndarray], max_states) -> None:
         super().__init__()
-        self.xs = xs
+        self.xs = deque(maxlen=max_states)
+        self.xs.extend(xs)
     def __len__(self):
         return len(self.xs)
     def __getitem__(self, index):
@@ -72,9 +74,15 @@ class VGradientPolicy(Controller):
         self.xf = torch.tensor(config.xf).to(torch.float32)
 
         # Setup nerual network
-        self.VGradient = VGradient(self.state_dim, config.hidden_size, config.xs_mean, config.xs_std)
+        self.VGradient = VGradient(self.state_dim, config.hidden_size, config.normalization_mean, config.normalization_std)
         self.loss_fn = nn.MSELoss()
         self.optimizer = torch.optim.Adam(self.VGradient.parameters(), lr=config.lr)
+
+        # rollout hyperparameters:
+        self.tf = config.max_trajectory_period
+        self.rollout_num = config.trajectories_per_rollout
+        self.x0_mean = config.x0_mean
+        self.x0_std = config.x0_std
 
         # Training hyperparameters
         self.batch_size = config.batch_size
@@ -83,8 +91,7 @@ class VGradientPolicy(Controller):
 
         # Initial dataset
         self.expert_dataset = ExpertDataset([],[])
-        xs = [np.random.rand(self.state_dim,) * config.xs_std *2 - config.xs_std + config.xs_mean for _ in range(config.sample_size)]
-        self.states_dataset = StatesDataset(xs)
+        self.states_dataset = StatesDataset([], config.max_states)
 
     def set_expert_set(self, xs:List[np.ndarray], us:List[np.ndarray]):
         """
@@ -99,6 +106,8 @@ class VGradientPolicy(Controller):
 
         self.expert_dataset.xs.extend(xs)
         self.expert_dataset.us.extend(us)
+
+        self.states_dataset.xs.extend(xs)
         
     def get_control_efforts(self, xs:torch.Tensor):
         """
@@ -157,38 +166,74 @@ class VGradientPolicy(Controller):
 
         loss = self.loss_fn(Vdots + us_cost, -xs_cost)
         return loss
+    
+    def get_total_return(self, xs:np.ndarray, us:np.ndarray) -> float:
+        """
+        A coarse estimate of total return, the return is equal to negative cost
+        The integral is approximate by addition of:
+            (x_diff.T Q x_diff + u.T @ R u) * dt
+        """
+        xs_diff = self.dynamics.states_wrap(xs-self.xf.numpy())
+        xs_cost = np.einsum('bi,ij,bj->b', xs_diff, self.Q.numpy(), xs_diff)
+        us_cost = np.einsum('bi,ij,bj->b', us, self.R.numpy(), us)
+        return -(np.sum(xs_cost) + np.sum(us_cost)) * self.dynamics.dt
+
+    def rollout_trajectory(self):
+
+        t0 = 0
+        t = np.arange(t0, self.tf, self.dynamics.dt)
+        total_returns = 0
+
+        self.VGradient.eval()
+
+        for _ in range(self.rollout_num):
+            x0 = self.x0_mean + np.random.rand(self.state_dim) * 2 * self.x0_std - self.x0_std
+            xs = np.zeros((t.shape[0], self.state_dim))
+            us = np.zeros((t.shape[0]-1, self.control_dim))
+            xs[0] = x0
+            with torch.no_grad():
+                for i in range(1, xs.shape[0]):
+                    us[i-1] = (self.get_control_efforts(torch.tensor(xs[i-1].astype(np.float32)).unsqueeze(0))).numpy()
+                    xs[i] = self.dynamics.simulate(xs[i-1],us[i-1],self.dynamics.dt)
+            
+            self.states_dataset.xs.extend(xs)
+            
+            total_returns += self.get_total_return(np.array(xs), np.array(us))
+
+        print(f"Average returns {total_returns/self.rollout_num}")
 
     def train(self):
 
-        expert_dataloader = DataLoader(self.expert_dataset, batch_size=self.batch_size, shuffle=True)
-        states_dataloader = DataLoader(self.states_dataset, batch_size=self.batch_size, shuffle=True)
+        for epoch in range(self.warm_up_epochs):
+            expert_dataloader = DataLoader(self.expert_dataset, batch_size=self.batch_size, shuffle=True)
+            running_loss = 0
+            dataset_size = len(expert_dataloader)
+            self.VGradient.train()
+            for xs ,us in expert_dataloader:
+                loss = self.HJB_loss(xs,us)
+                running_loss += loss.item()
+                self.optimizer.zero_grad()
+                loss.backward()
+                self.optimizer.step()
 
-        self.VGradient.train()
+            print(f"warmup epoch {epoch+1}, loss {running_loss / dataset_size}")
 
         for epoch in range(self.epochs):
-            running_loss = 0
-            dataset_size = 0
-            
-            # Use expert data to warm-up the VG
-            if epoch < self.warm_up_epochs:
-                dataset_size = len(expert_dataloader)
-                for xs ,us in expert_dataloader:
-                    loss = self.HJB_loss(xs,us)
-                    running_loss += loss.item()
-                    self.optimizer.zero_grad()
-                    loss.backward()
-                    self.optimizer.step()
 
-            # Only use HJB loss function continue to train
-            else:
-                dataset_size = len(states_dataloader)
-                for xs in states_dataloader:
-                    us = self.get_control_efforts(xs)
-                    loss = self.HJB_loss(xs,us)
-                    running_loss += loss.item()
-                    self.optimizer.zero_grad()
-                    loss.backward()
-                    self.optimizer.step()
-                    dataset_size += 1 
-            
-            print(f"epoch {epoch+1}, loss {running_loss / dataset_size}")
+            self.rollout_trajectory()
+
+            states_dataloader = DataLoader(self.states_dataset, batch_size=self.batch_size, shuffle=True)
+            running_loss = 0
+            dataset_size = len(states_dataloader)
+            self.VGradient.train()
+
+            for xs in states_dataloader:
+                us = self.get_control_efforts(xs)
+                loss = self.HJB_loss(xs,us)
+                running_loss += loss.item()
+                self.optimizer.zero_grad()
+                loss.backward()
+                self.optimizer.step()
+
+            print(f"epoch {epoch+1}, datasize {dataset_size * self.batch_size}, loss {running_loss / dataset_size}")
+        

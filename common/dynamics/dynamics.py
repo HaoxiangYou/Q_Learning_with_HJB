@@ -3,6 +3,9 @@ import torch
 from typing import Tuple
 from  scipy.integrate import solve_ivp
 class Dynamics:
+    
+    dt: float
+
     def __init__(self,) -> None:
         pass
     
