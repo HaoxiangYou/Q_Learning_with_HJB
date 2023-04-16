@@ -6,13 +6,13 @@ pVpxControllerConfig.hidden_size = 100
 pVpxControllerConfig.lr = 1e-3
 pVpxControllerConfig.device = "cuda"
 pVpxControllerConfig.epochs = 100
-pVpxControllerConfig.warm_up_epochs = 10
+pVpxControllerConfig.warm_up_epochs = 100
 pVpxControllerConfig.batch_size = 64
 
 # initial states sample
 pVpxControllerConfig.x0_mean = [0, 3.14, 0, 0]
 pVpxControllerConfig.x0_std = [2.4, 0.05, 0, 0]
-pVpxControllerConfig.num_of_warmup_trajectory = 1
+pVpxControllerConfig.num_of_warmup_trajectory = 100
 
 # normalization term
 pVpxControllerConfig.normalization_mean = [0, 0, 0, 0]

@@ -75,7 +75,7 @@ class VGradientPolicy(Controller):
 
         # Setup nerual network
         self.VGradient = VGradient(self.state_dim, config.hidden_size, config.normalization_mean, config.normalization_std)
-        self.loss_fn = nn.MSELoss()
+        self.loss_fn = nn.HuberLoss()
         self.optimizer = torch.optim.Adam(self.VGradient.parameters(), lr=config.lr)
 
         # rollout hyperparameters:
