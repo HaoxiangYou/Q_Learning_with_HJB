@@ -4,11 +4,21 @@ from torch import nn
 from torch.utils.data import Dataset, DataLoader
 from common.dynamics.dynamics import Dynamics
 from common.controller.controller import Controller
+from common.configs.controller.pVpx_controller_config import pVpxControllerConfig
 from typing import List
 
 class VGradient(nn.Module):    
-    def __init__(self, input_size, hidden_size) -> None:
+    def __init__(self, input_size:int, hidden_size:int, input_mean:np.ndarray, input_range:np.ndarray) -> None:
         super().__init__()
+
+        assert input_mean.ndim == 1
+        assert input_range.ndim == 1
+        assert input_mean.shape[0] == input_size
+        assert input_range.shape[0] == input_size
+
+        self.input_mean = torch.tensor(input_mean).to(torch.float32)
+        self.input_range = torch.tensor(input_range).to(torch.float32)
+
         self.net = nn.Sequential(
             nn.Linear(input_size, hidden_size),
             nn.ReLU(),
@@ -17,7 +27,7 @@ class VGradient(nn.Module):
         )
         
     def forward(self, x:torch.Tensor):
-        pVpx = self.net(x)
+        pVpx = self.net((x - self.input_mean) / self.input_range)
         return pVpx
     
 class ExpertDataset(Dataset):
@@ -42,25 +52,12 @@ class StatesDataset(Dataset):
 
 class VGradientPolicy(Controller):
     
-    def __init__(self, dynamics:Dynamics, Q:np.ndarray, R:np.ndarray, xf:np.ndarray) -> None:
+    def __init__(self, dynamics:Dynamics, config: pVpxControllerConfig) -> None:
         super().__init__()
-
-        # Some hyperparameters
-        seed = 0
-        hidden_size = 100
-        lr=1e-5
-        self.batch_size = 64
-        self.warm_up_epochs = 10
-        self.epochs = 50
-        self.xs_range = np.array([np.pi, np.pi, 5, 5])
-        self.sample_size = 10000
-
-        self.Q = torch.tensor(Q).to(torch.float32)
-        self.R = torch.tensor(R).to(torch.float32)
-        self.xf = torch.tensor(xf).to(torch.float32)
-
-        np.random.seed(seed)
-        torch.manual_seed(seed)
+        
+        # Setup seed
+        np.random.seed(config.seed)
+        torch.manual_seed(config.seed)
 
         # Load system
         self.dynamics = dynamics
@@ -70,15 +67,23 @@ class VGradientPolicy(Controller):
         assert umax.shape[0] == self.control_dim
         self.umin = torch.tensor(umin).to(torch.float32)
         self.umax = torch.tensor(umax).to(torch.float32)
+        self.Q = torch.tensor(config.Q).to(torch.float32)
+        self.R = torch.tensor(config.R).to(torch.float32)
+        self.xf = torch.tensor(config.xf).to(torch.float32)
 
         # Setup nerual network
-        self.VGradient = VGradient(self.state_dim, hidden_size)
+        self.VGradient = VGradient(self.state_dim, config.hidden_size, config.xs_mean, config.xs_std)
         self.loss_fn = nn.MSELoss()
-        self.optimizer = torch.optim.Adam(self.VGradient.parameters(), lr=lr)
+        self.optimizer = torch.optim.Adam(self.VGradient.parameters(), lr=config.lr)
+
+        # Training hyperparameters
+        self.batch_size = config.batch_size
+        self.warm_up_epochs = config.warm_up_epochs
+        self.epochs = config.epochs
 
         # Initial dataset
         self.expert_dataset = ExpertDataset([],[])
-        xs = [np.random.rand(self.state_dim,) * self.xs_range *2 - self.xs_range for _ in range(self.sample_size)]
+        xs = [np.random.rand(self.state_dim,) * config.xs_std *2 - config.xs_std + config.xs_mean for _ in range(config.sample_size)]
         self.states_dataset = StatesDataset(xs)
 
     def set_expert_set(self, xs:List[np.ndarray], us:List[np.ndarray]):

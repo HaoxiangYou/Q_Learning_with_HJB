@@ -1,0 +1,29 @@
+# general
+pVpxControllerConfig.seed = 0
+
+# neural network hyperparameters
+pVpxControllerConfig.hidden_size = 100
+pVpxControllerConfig.lr = 1e-3
+pVpxControllerConfig.device = "cuda"
+pVpxControllerConfig.epochs = 100
+pVpxControllerConfig.warm_up_epochs = 10
+pVpxControllerConfig.batch_size = 64
+
+# initial states
+pVpxControllerConfig.x0_mean = [0, 3.14, 0, 0]
+pVpxControllerConfig.x0_std = [2.4, 0.05, 0, 0]
+pVpxControllerConfig.num_of_warmup_trajectory = 100
+
+
+# states sample
+pVpxControllerConfig.xs_mean = [0, 0, 0, 0]
+pVpxControllerConfig.xs_std = [4, 3.14, 4, 4]
+pVpxControllerConfig.sample_size=10000
+
+# system associate
+pVpxControllerConfig.Q = [[1,0,0,0],
+                        [0,1,0,0],
+                        [0,0,1,0],
+                        [0,0,0,1]]
+pVpxControllerConfig.R = [[1]]
+pVpxControllerConfig.xf = [0, 3.14, 0, 0]

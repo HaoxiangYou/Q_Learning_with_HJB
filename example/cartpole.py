@@ -1,9 +1,12 @@
 import numpy as np
 import torch
+import gin
+import os
 import matplotlib.pyplot as plt
 from common.dynamics.cartpole import Cartpole
 from common.controller.cartpole_energy_shaping import CartpoleEnergyShapingController, dt
 from common.controller.pVpx_policy import VGradientPolicy
+from common.configs.controller.pVpx_controller_config import pVpxControllerConfig
 
 def test_nn_policy(nn_policy:VGradientPolicy, cartpole:Cartpole, x0:np.ndarray, energy_shaping_controller=None):
     t0 = 0
@@ -44,25 +47,27 @@ def test_nn_policy(nn_policy:VGradientPolicy, cartpole:Cartpole, x0:np.ndarray, 
 
 def main():
 
-    np.random.seed(0)
+    path_to_config_file = os.path.normpath(
+        os.path.join(
+            os.path.dirname(__file__),
+            "../common/configs/controller/cartpole_pVpx_controller.gin",
+        )
+    )
+    gin.parse_config_file(path_to_config_file)
+    controller_config = pVpxControllerConfig()
 
-    Q = np.eye(4)
-    R = np.eye(1)
-    xf = np.array([0, np.pi, 0, 0])
+    np.random.seed(controller_config.seed)
 
     cartpole = Cartpole()
-    nn_policy = VGradientPolicy(cartpole, Q, R, xf)
-    energy_shaping_controller = CartpoleEnergyShapingController(cartpole, Q=Q, R=R)
+    nn_policy = VGradientPolicy(cartpole, controller_config)
+    energy_shaping_controller = CartpoleEnergyShapingController(cartpole, Q=controller_config.Q, R=controller_config.R)
 
     # Create warmup dataset from energy shaping
-
-    num_of_warm_up_trajectories = 100
-    noise_for_initial_condition = np.array([2,0.2,2,0.5])
     t_span = np.arange(0,5,dt)
 
-    for i in range(num_of_warm_up_trajectories):
+    for i in range(controller_config.num_of_warmup_trajectory):
         
-        x0 = xf + np.random.rand(4) * 2 * noise_for_initial_condition - noise_for_initial_condition
+        x0 = controller_config.x0_mean + np.random.rand(4) * 2 * controller_config.x0_std - controller_config.x0_std
         xs_energy_shaping = [x0]
         us_energy_shaping = []
         for _ in range(t_span.shape[0]-1):
@@ -75,7 +80,7 @@ def main():
     nn_policy.train()
     nn_policy.VGradient.eval()
 
-    x0 = xf + np.random.rand(4) * 2 * noise_for_initial_condition - noise_for_initial_condition
+    x0 = controller_config.x0_mean + np.random.rand(4) * 2 * controller_config.x0_std - controller_config.x0_std
 
     test_nn_policy(nn_policy, cartpole, x0, energy_shaping_controller)
 
