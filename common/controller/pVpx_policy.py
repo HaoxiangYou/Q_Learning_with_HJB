@@ -50,8 +50,6 @@ class VGradientPolicy(Controller):
         hidden_size = 100
         lr=1e-5
         self.batch_size = 64
-        weight_decay=0
-        momentum=0.9
         self.warm_up_epochs = 10
         self.epochs = 50
         self.xs_range = np.array([np.pi, np.pi, 5, 5])
@@ -76,7 +74,7 @@ class VGradientPolicy(Controller):
         # Setup nerual network
         self.VGradient = VGradient(self.state_dim, hidden_size)
         self.loss_fn = nn.MSELoss()
-        self.optimizer = torch.optim.SGD(self.VGradient.parameters(), lr=lr, weight_decay=weight_decay, momentum=momentum)
+        self.optimizer = torch.optim.Adam(self.VGradient.parameters(), lr=lr)
 
         # Initial dataset
         self.expert_dataset = ExpertDataset([],[])
