@@ -96,19 +96,9 @@ class Dynamics:
 
         f_1, f_2 = self.get_control_affine_matrix(x)
 
-        # Turn f_1, f_2 into single vector and u into a scalar
+        xdot = f_1 + f_2 @ u
 
-        if isinstance(u, torch.Tensor):
-            u = u.item()
-        if isinstance(u, np.ndarray):
-            u = u.squeeze()
-
-        f_1 = f_1.squeeze()
-        f_2 = f_2.squeeze()
-
-        xdot = f_1 + f_2 * u
-
-        return xdot
+        return xdot.squeeze()
 
     def simulate(self, x, u, dt=None):
         """
