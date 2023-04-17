@@ -122,9 +122,9 @@ class Dynamics:
         def f(t, x):
             return self.dynamics_step(x,u)
         if dt:
-            sol = solve_ivp(f, (0,dt), x, first_step=dt)
+            sol = solve_ivp(f, (0,dt), x)
         else:
-            sol = solve_ivp(f, (0,dt), x, first_step=self.dt)
+            sol = solve_ivp(f, (0,self.dt), x)
 
         state = self.states_wrap(sol.y[:,-1].ravel()[None,:]).squeeze()
 
