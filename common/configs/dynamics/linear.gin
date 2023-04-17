@@ -1,0 +1,5 @@
+LinearDynamicsConfig.dt = 0.05
+LinearDynamicsConfig.A = [[1,0],[0,1]]
+LinearDynamicsConfig.B = [[1,0],[0,1]]
+LinearDynamicsConfig.umin = [-100,-100]
+LinearDynamicsConfig.umax = [100,100]
