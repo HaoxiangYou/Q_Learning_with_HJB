@@ -27,6 +27,7 @@ class Cartpole(Dynamics):
         self.g = params["g"]
         self.l = params["l"]
         self.umax = params["umax"]
+        self.dt = params["dt"]
 
     def get_dimension(self) -> Tuple[int, int]:
         return 4,1

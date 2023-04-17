@@ -110,7 +110,7 @@ class Dynamics:
 
         return xdot
 
-    def simulate(self, x, u, dt):
+    def simulate(self, x, u, dt=None):
         """
         Simulate the open loop acrobot for one step
         """
@@ -121,7 +121,10 @@ class Dynamics:
         
         def f(t, x):
             return self.dynamics_step(x,u)
-        sol = solve_ivp(f, (0,dt), x, first_step=dt)
+        if dt:
+            sol = solve_ivp(f, (0,dt), x, first_step=dt)
+        else:
+            sol = solve_ivp(f, (0,dt), x, first_step=self.dt)
 
         state = self.states_wrap(sol.y[:,-1].ravel()[None,:]).squeeze()
 
