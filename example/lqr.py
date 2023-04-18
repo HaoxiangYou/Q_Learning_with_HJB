@@ -78,6 +78,69 @@ def test_nn_policy(nn_policy:VGradientPolicy, dynamics:LinearDynamics, x0:np.nda
 
     plt.show()
 
+def draw_2D_value_function_levelset(nn_policy:VGradientPolicy, lqr_controller:LQR, xmin:np.ndarray, xmax:np.ndarray, dx=0.01):
+    """
+        Calculate the level set for value function
+    """
+
+    assert nn_policy.state_dim == 2
+
+    nn_policy.VGradient.eval()
+
+    x1 = np.arange(xmin[0], xmax[0]+dx, dx, dtype=np.float32)
+    x2 = np.arange(xmin[1], xmax[1]+dx, dx, dtype=np.float32)
+
+    X1,X2 = np.meshgrid(x1,x2)
+
+    mid_index = X1.shape[0]//2
+
+    # For V_learned, we assume the mid-point value is equal to zero as initial condition
+    V_learned = np.zeros_like(X1)
+    V_lqr = np.zeros_like(X1)
+
+    with torch.no_grad():
+        for i in range(mid_index+1, X1.shape[0]):
+            pVpx = nn_policy.VGradient(torch.tensor([[X1[i-1, mid_index], X2[i-1, mid_index]]])).numpy().squeeze()
+            V_learned[i, mid_index] = V_learned[i-1, mid_index] + \
+                pVpx.T @ np.array([X1[i,mid_index] - X1[i-1,mid_index], X2[i,mid_index] - X2[i-1,mid_index]]) 
+        for i in range(mid_index-1, -1, -1):
+            pVpx = nn_policy.VGradient(torch.tensor([[X1[i+1, mid_index], X2[i+1, mid_index]]])).numpy().squeeze()
+            V_learned[i, mid_index] = V_learned[i+1, mid_index] + \
+                pVpx.T @ np.array([X1[i,mid_index] - X1[i+1,mid_index], X2[i,mid_index] - X2[i+1,mid_index]])
+        for j in range(mid_index+1, X1.shape[0]):
+            for i in range(X1.shape[0]):
+                pVpx = nn_policy.VGradient(torch.tensor([[X1[i, j-1], X2[i, j-1]]])).numpy().squeeze()
+                V_learned[i, j] = V_learned[i, j-1] + \
+                pVpx.T @ np.array([X1[i,j] - X1[i,j-1], X2[i,j] - X2[i,j-1]])
+        for j in range(mid_index-1, -1, -1):
+            for i in range(X1.shape[0]):
+                pVpx = nn_policy.VGradient(torch.tensor([[X1[i, j+1], X2[i, j+1]]])).numpy().squeeze()
+                V_learned[i, j] = V_learned[i, j+1] + \
+                pVpx.T @ np.array([X1[i,j] - X1[i,j+1], X2[i,j] - X2[i,j+1]])
+
+    for i in range(X1.shape[0]):
+        for j in range(X2.shape[0]):
+            x = np.array([X1[i,j], X2[i,j]])
+            V_lqr[i,j] = x.T @ lqr_controller.P @ x
+
+    fig = plt.figure(1)
+    ax = fig.add_subplot(111, projection='3d')
+    ax.plot_surface(X1, X2, V_lqr)
+    ax.set_xlabel('x1')
+    ax.set_ylabel('x2')
+    ax.set_zlabel('value')
+    plt.title("LQR value function levelset")
+
+
+    fig = plt.figure(2)
+    ax = fig.add_subplot(111, projection='3d')
+    ax.plot_surface(X1, X2, V_learned)
+    ax.set_xlabel('x1')
+    ax.set_ylabel('x2')
+    ax.set_zlabel('value')
+    plt.title("Learned value function levelset")
+
+    plt.show()
 
 def load_config():
     path_to_dynamics_config_file = os.path.normpath(
@@ -130,6 +193,8 @@ def main():
     x0 = controller_config.x0_mean + np.random.rand(state_dim) * 2 * controller_config.x0_std - controller_config.x0_std
 
     test_nn_policy(nn_policy, dynamics, x0, lqr_controller)
+
+    draw_2D_value_function_levelset(nn_policy, lqr_controller, controller_config.x0_mean-controller_config.x0_std, controller_config.x0_mean + controller_config.x0_std)
 
     import pdb; pdb.set_trace()
 
