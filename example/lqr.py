@@ -111,7 +111,7 @@ def main():
     lqr_controller = LQR(dynamics, controller_config.Q, controller_config.R)
 
     state_dim, control_dim = dynamics.get_dimension()
-    t_span = np.arange(0,5,dynamics_config.dt)
+    t_span = np.arange(0,controller_config.max_trajectory_period,dynamics_config.dt)
 
     for i in range(controller_config.num_of_warmup_trajectory):
         

@@ -20,8 +20,8 @@ pVpxControllerConfig.normalization_std = [2, 2]
 
 # trajectory collection
 pVpxControllerConfig.max_states = 1000000
-pVpxControllerConfig.max_trajectory_period = 1
-pVpxControllerConfig.trajectories_per_rollout = 2
+pVpxControllerConfig.max_trajectory_period = 0.1
+pVpxControllerConfig.trajectories_per_rollout = 0
 
 # system associate
 pVpxControllerConfig.Q = [[1,0],
