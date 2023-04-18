@@ -20,6 +20,7 @@ class LQR(Controller):
 
         self.P = sp.linalg.solve_continuous_are(self.dynamics.A, self.dynamics.B, self.Q, self.R)
         self.K = np.dot(sp.linalg.inv(self.R), np.dot(self.dynamics.B.T, self.P))
+        self.umin, self.umax = self.dynamics.get_control_limit()
 
     def get_control_efforts(self, x):
-        return -self.K @ x
+        return np.clip(-self.K @ x, self.umin, self.umax)
