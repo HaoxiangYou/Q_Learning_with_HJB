@@ -28,7 +28,7 @@ def test_nn_policy(nn_policy:VGradientPolicy, dynamics:LinearDynamics, x0:np.nda
         for _ in t:
             x_learned = xs_learned[-1]
             x_lqr = xs_lqr[-1]
-            u_learned = (nn_policy.get_control_efforts(torch.tensor(x_learned.astype(np.float32)).unsqueeze(0))).numpy().squeeze()
+            u_learned = (nn_policy.get_control_efforts(torch.tensor(x_learned.astype(np.float32)).unsqueeze(0))).numpy().squeeze(0)
             u_lqr = lqr_controller.get_control_efforts(x_lqr)
 
             us_learned.append(u_learned)
@@ -49,20 +49,18 @@ def test_nn_policy(nn_policy:VGradientPolicy, dynamics:LinearDynamics, x0:np.nda
     us_lqr = np.array(us_lqr)
 
     plt.figure(1)
-    plt.plot(t, xs_learned[:-1,0], label="learned x[0]")
-    plt.plot(t, xs_learned[:-1,1], label="learned x[1]")
-    plt.plot(t, xs_lqr[:-1,0], label="lqr x[0]")
-    plt.plot(t, xs_lqr[:-1,1], label="lqr x[1]")
+    for i in range(xs_learned.shape[1]):
+        plt.plot(t, xs_learned[:-1,i], label=f"learned x[{i}]")
+        plt.plot(t, xs_lqr[:-1,0], label=f"lqr x[{i}]")
     plt.title("states vs time")
     plt.xlabel("time")
     plt.ylabel("state")
     plt.legend()
 
     plt.figure(2)
-    plt.plot(t, us_learned[:,0], label="learned u[0]")
-    plt.plot(t, us_learned[:,1], label="learned u[1]")
-    plt.plot(t, us_lqr[:,0], label="lqr u[0]")
-    plt.plot(t, us_lqr[:,1], label="lqr u[1]")
+    for i in range(us_learned.shape[1]):
+        plt.plot(t, us_learned[:,i], label=f"learned u[{i}]")
+        plt.plot(t, us_lqr[:,i], label=f"lqr u[{i}]")
     plt.title("input vs time")
     plt.xlabel("time")
     plt.ylabel("state")
