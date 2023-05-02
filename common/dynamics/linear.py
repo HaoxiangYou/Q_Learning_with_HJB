@@ -29,22 +29,7 @@ class LinearDynamics(Dynamics):
     def states_wrap(self, x:np.ndarray) -> np.ndarray:
         return x
     
-    def get_control_affine_matrix(self, xs) -> Tuple[np.ndarray, np.ndarray]:
-        # If x is a single vector turn it into a 1 X self.dim*2
-        if xs.ndim == 1:
-            xs = xs.reshape(1,-1)
-        # If x is a tensor turn it into arrary
-        if isinstance(xs, torch.Tensor):
-            xs = xs.numpy()
-
-        n = xs.shape[0]
+    def get_control_affine_matrix(self, x:np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         state_dim, control_dim = self.get_dimension()
-
-        f_1 = np.zeros((n, state_dim))
-        f_2 = np.zeros((n, state_dim,control_dim))
-
-        for i in range(n):
-            f_1[i] = self.A @ xs[i]
-            f_2[i] = self.B
-
-        return f_1, f_2
+        assert x.shape[0] == state_dim
+        return self.A @ x, self.B

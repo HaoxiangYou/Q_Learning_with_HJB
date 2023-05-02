@@ -69,17 +69,10 @@ class Acrobot(Dynamics):
         U  = -self.m1*self.g*self.l1/2*c1 - self.m2*self.g*(self.l1*c1 + self.l2/2*np.cos(q[0]+q[1]))
         return T1 + T2 + U
     
-    def states_wrap(self, xs):
-
-        assert xs.ndim == 2
-        assert xs.shape[1] == self.dim*2 
-
-        if isinstance(xs, torch.Tensor):
-            xs[:, :2] = torch.remainder(xs[:, :2] + torch.pi, 2*torch.pi) - torch.pi
-        else:
-            xs[:, :2] = np.remainder(xs[:, :2] + torch.pi, 2*np.pi) - np.pi
-
-        return xs
+    def states_wrap(self, x:np.ndarray) -> np.ndarray:
+        assert x.shape == (4,)
+        x[:2] = np.remainder(x[:2] + np.pi, 2*np.pi) - np.pi
+        return x
     
     def plot_trajectory(self, ts:np.ndarray, xs:np.ndarray, margin=0.5):
         fig = plt.figure()

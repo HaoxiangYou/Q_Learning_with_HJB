@@ -72,7 +72,7 @@ class CartpoleEnergyShapingController(Controller):
             u: control effort applied to the robot, a scalar number
         """
 
-        dx = self.cartpole.states_wrap((x-self.xf)[None,:]).squeeze()
+        dx = self.cartpole.states_wrap((x-self.xf))
 
         K, P = self.get_lqr_term()
 
@@ -127,8 +127,6 @@ def test_cartpole(cartpole: Cartpole, cartpole_controller: CartpoleEnergyShaping
         us[i-1] = cartpole_controller.get_control_efforts(xs[i-1])
         xs[i] = cartpole.simulate(xs[i-1],us[i-1],dt)
     
-    xs = cartpole.states_wrap(xs)
-
     energy = [cartpole_controller.energy(x) for x in xs]
 
     anim, fig = cartpole.plot_trajectory(t, xs)

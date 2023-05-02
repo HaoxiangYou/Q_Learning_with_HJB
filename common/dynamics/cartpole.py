@@ -53,16 +53,10 @@ class Cartpole(Dynamics):
     def get_B(self) -> np.ndarray:
         return np.array([1,0])
     
-    def states_wrap(self, xs) -> np.ndarray:
-        assert xs.ndim == 2
-        assert xs.shape[1] == 4
-
-        if isinstance(xs, torch.Tensor):
-            xs[:,1] = torch.remainder(xs[:,1] + torch.pi, 2*torch.pi) - torch.pi
-        else:
-            xs[:,1] = np.remainder(xs[:,1] + np.pi, 2*np.pi) - np.pi
-
-        return xs
+    def states_wrap(self, x:np.ndarray) -> np.ndarray:
+        assert x.shape == (4,)
+        x[1] = np.remainder(x[1] + np.pi, 2*np.pi) - np.pi
+        return x
 
     def plot_trajectory(self, ts:np.ndarray, xs:np.ndarray, 
                     cart_width=0.4, cart_height=0.2, pole_radius=0.05, x_range=np.array([-2, 2]), y_range=np.array([-1,3])):

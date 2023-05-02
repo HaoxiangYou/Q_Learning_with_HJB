@@ -34,58 +34,49 @@ class Dynamics:
     def get_B(self) -> np.ndarray:
         raise NotImplementedError
     
-    def states_wrap(self) -> np.ndarray:
+    def states_wrap(self, x:np.ndarray) -> np.ndarray:
         """
         wrap the states into valid range
 
         params:
-            xs: tensor or numpy array in shape n X states_dim
+            x: state vector in (states_dim, )
         returns:
-            wrap states in shape n X states_dim
+            wrap states in (states_dim, )
         """
         raise NotImplementedError
     
-    def get_control_affine_matrix(self, xs) -> Tuple[np.ndarray, np.ndarray]:
+    def get_control_affine_matrix(self, x:np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
             x_dot = f_1(x) + f_2(x) u
             params:
-                xs: n X self.dim*2
+                x: state vector in (states_dim, )
             return:
                 f_1(x): 
-                    n X self.dim*2  tensor or array
+                    in (state_dim, )
                 f_2(x):
-                    n X self.dim*2 X self.control_dim tensor or array
+                    in (state_dim, control_dim)
         """
-        # If x is a single vector turn it into a 1 X self.dim*2
-        if xs.ndim == 1:
-            xs = xs.reshape(1,-1)
-        # If x is a tensor turn it into arrary
-        if isinstance(xs, torch.Tensor):
-            xs = xs.numpy()
-
-        n = xs.shape[0]
+        assert x.ndim == 1
 
         state_dim, control_dim = self.get_dimension()
 
-        f_1 = np.zeros((n, state_dim))
-        f_2 = np.zeros((n, state_dim,control_dim))
+        f_1 = np.zeros((state_dim,))
+        f_2 = np.zeros((state_dim,control_dim))
 
-        for i in range(n):
-            x = xs[i]
 
-            q, dq = x[:(state_dim//2)], x[(state_dim//2):]
+        q, dq = x[:(state_dim//2)], x[(state_dim//2):]
 
-            M = self.get_M(x)
+        M = self.get_M(x)
 
-            C = self.get_C(x)
+        C = self.get_C(x)
 
-            G = self.get_G(x)
-            B = self.get_B()
+        G = self.get_G(x)
+        B = self.get_B()
 
-            f_1[i,:(state_dim//2)] = dq
-            f_1[i,(state_dim//2):] = -np.linalg.inv(M) @ (np.dot(C, dq)  + G)
+        f_1[:(state_dim//2)] = dq
+        f_1[(state_dim//2):] = -np.linalg.inv(M) @ (np.dot(C, dq)  + G)
 
-            f_2[i, (state_dim//2):,:] = (np.linalg.inv(M) @ B).reshape(-1,control_dim) 
+        f_2[(state_dim//2):,:] = (np.linalg.inv(M) @ B).reshape(-1,control_dim) 
 
         return f_1, f_2
     
@@ -116,6 +107,6 @@ class Dynamics:
         else:
             sol = solve_ivp(f, (0,self.dt), x)
 
-        state = self.states_wrap(sol.y[:,-1].ravel()[None,:]).squeeze()
+        state = self.states_wrap(sol.y[:,-1].ravel()).squeeze()
 
         return state
