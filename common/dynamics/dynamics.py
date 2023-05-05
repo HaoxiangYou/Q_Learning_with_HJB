@@ -23,7 +23,7 @@ class Dynamics:
         np.random.seed(config.seed)
 
     def get_initial_state(self,) -> np.ndarray:
-        return np.random.uniform(low=-self.x0_std, high=self.x0_std) + self.x0_mean
+        return self.states_wrap(np.random.uniform(low=-self.x0_std, high=self.x0_std) + self.x0_mean)
 
     def get_dimension(self,) -> Tuple[int, int]:
         """
