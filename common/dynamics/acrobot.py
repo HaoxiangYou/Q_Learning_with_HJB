@@ -1,9 +1,9 @@
 import numpy as np
+import jax.numpy as jnp
 from common.dynamics.dynamics import Dynamics
 from typing import Tuple
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-import torch
 
 dt = 0.05
 
@@ -69,11 +69,16 @@ class Acrobot(Dynamics):
         U  = -self.m1*self.g*self.l1/2*c1 - self.m2*self.g*(self.l1*c1 + self.l2/2*np.cos(q[0]+q[1]))
         return T1 + T2 + U
     
-    def states_wrap(self, x:np.ndarray) -> np.ndarray:
+    def states_wrap(self, x):
         assert x.shape == (4,)
-        x[:2] = np.remainder(x[:2] + np.pi, 2*np.pi) - np.pi
-        return x
-    
+        if isinstance(x, jnp.ndarray):
+            x0_wrapped = jnp.remainder(x[0] + jnp.pi, 2*jnp.pi) - jnp.pi
+            x1_wrapped = jnp.remainder(x[1] + jnp.pi, 2*jnp.pi) - jnp.pi
+            return jnp.array([x0_wrapped, x1_wrapped, x[2], x[3]])
+        else:
+            x0_wrapped = np.remainder(x[0] + np.pi, 2*np.pi) - np.pi
+            x1_wrapped = np.remainder(x[1] + np.pi, 2*np.pi) - np.pi
+            return np.array([x0_wrapped, x1_wrapped, x[2], x[3]])
     def plot_trajectory(self, ts:np.ndarray, xs:np.ndarray, margin=0.5):
         fig = plt.figure()
         ax = plt.axes()

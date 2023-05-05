@@ -1,5 +1,5 @@
 import numpy as np
-import torch
+import jax.numpy as jnp
 from common.dynamics.dynamics import Dynamics
 from typing import Tuple
 import matplotlib.pyplot as plt
@@ -53,11 +53,15 @@ class Cartpole(Dynamics):
     def get_B(self) -> np.ndarray:
         return np.array([1,0])
     
-    def states_wrap(self, x:np.ndarray) -> np.ndarray:
+    def states_wrap(self, x):
         assert x.shape == (4,)
-        x[1] = np.remainder(x[1] + np.pi, 2*np.pi) - np.pi
-        return x
-
+        if isinstance(x, jnp.ndarray):
+            x1_wrapped = jnp.remainder(x[1] + jnp.pi, 2*jnp.pi) - jnp.pi
+            return jnp.array([x[0], x1_wrapped, x[2], x[3]])
+        else:
+            x1_wrapped = np.remainder(x[1] + np.pi, 2*np.pi) - np.pi
+            return np.array([x[0], x1_wrapped, x[2], x[3]])
+        
     def plot_trajectory(self, ts:np.ndarray, xs:np.ndarray, 
                     cart_width=0.4, cart_height=0.2, pole_radius=0.05, x_range=np.array([-2, 2]), y_range=np.array([-1,3])):
     
