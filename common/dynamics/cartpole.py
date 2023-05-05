@@ -5,35 +5,16 @@ from typing import Tuple
 import matplotlib.pyplot as plt
 from matplotlib import animation
 from matplotlib.patches import Rectangle, Circle
-
-dt = 0.05
-p = {
-    "mc":1,
-    "mp":1,
-    "g":9.81,
-    "l":1,
-    "dt":dt,
-    "umax": 5
-}
+from common.configs.dynamics.cartpole_config import CartpoleDynamicsConfig
 
 class Cartpole(Dynamics):
 
-    def __init__(self, params=p) -> None:
-        super().__init__()
-
-        self.mc = params["mc"]
-        self.mp = params["mp"]
-        self.dt = params["dt"]
-        self.g = params["g"]
-        self.l = params["l"]
-        self.umax = params["umax"]
-        self.dt = params["dt"]
-
-    def get_dimension(self) -> Tuple[int, int]:
-        return 4,1
-    
-    def get_control_limit(self) -> Tuple[np.ndarray, np.ndarray]:
-        return -np.array([self.umax]), np.array([self.umax])
+    def __init__(self, config: CartpoleDynamicsConfig) -> None:
+        super().__init__(config)
+        self.mc = config.mc
+        self.mp = config.mp
+        self.l = config.l
+        self.g = config.g
     
     def get_M(self, x: np.ndarray) -> np.ndarray:
         return np.array([
@@ -93,11 +74,18 @@ class Cartpole(Dynamics):
         return anim, fig
     
 if __name__ == "__main__":
-    cartpole = Cartpole()
+
+    config = CartpoleDynamicsConfig(mc=1, mp=1, l=1, g=1, dt=0.05, seed=0,
+                                    x0_mean=[0, 3.14, 0, 0],
+                                    x0_std=[2.4, 0.05, 0, 0],
+                                    umin=[-5],
+                                    umax=[5])
+
+    cartpole = Cartpole(config)
     t0 = 0
     tf = 5
-    t = np.arange(t0, tf, dt)
-    x0 = np.array([0,np.pi,1,0])
+    t = np.arange(t0, tf, cartpole.dt)
+    x0 = cartpole.get_initial_state()
 
     xs = np.zeros((t.shape[0], x0.shape[0]))
     us = np.zeros((t.shape[0]-1,))
@@ -105,7 +93,7 @@ if __name__ == "__main__":
 
     for i in range(1, xs.shape[0]):
         us[i-1] = 0
-        xs[i] = cartpole.simulate(xs[i-1],us[i-1],dt)
+        xs[i] = cartpole.simulate(xs[i-1],us[i-1])
     xs[:,1] = np.arctan2(np.sin(xs[:,1]), np.cos(xs[:,1]))
 
     anim, fig = cartpole.plot_trajectory(t, xs)

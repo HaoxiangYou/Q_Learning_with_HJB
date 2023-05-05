@@ -1,26 +1,42 @@
 import numpy as np
-import torch
 from typing import Tuple
 from  scipy.integrate import solve_ivp
+from common.configs.dynamics.dynamics_config import DynamicsConfig
 class Dynamics:
-    
-    dt: float
 
-    def __init__(self,) -> None:
-        pass
-    
+    dt: float
+    state_dim: int
+    control_dim: int
+    x0_mean: np.ndarray
+    x0_std: np.ndarray
+    umin: np.ndarray
+    umax: np.ndarray
+
+    def __init__(self, config: DynamicsConfig) -> None:
+        self.state_dim = config.state_dim
+        self.control_dim = config.control_dim
+        self.dt = config.dt
+        self.umin = config.umin
+        self.umax = config.umax
+        self.x0_mean = config.x0_mean
+        self.x0_std = config.x0_std
+        np.random.seed(config.seed)
+
+    def get_initial_state(self,) -> np.ndarray:
+        return np.random.uniform(low=-self.x0_std, high=self.x0_std) + self.x0_mean
+
     def get_dimension(self,) -> Tuple[int, int]:
         """
             returns:
                 states dim, control dim
         """
-        raise NotImplementedError
+        return self.state_dim, self.control_dim
 
     def get_control_affine_matrix(self, x) -> Tuple[np.ndarray, np.ndarray]:
         raise NotImplementedError
     
     def get_control_limit(self,) -> Tuple[np.ndarray, np.ndarray]:
-        raise NotImplementedError
+        return self.umin, self.umax
     
     def get_M(self, x:np.ndarray) -> np.ndarray:
         raise NotImplementedError
@@ -97,8 +113,7 @@ class Dynamics:
         """
 
         # make sure u is within the range
-        umin, umax = self.get_control_limit()
-        u = np.clip(u, umin, umax)
+        u = np.clip(u, self.umin, self.umax)
         
         def f(t, x):
             return self.dynamics_step(x,u)

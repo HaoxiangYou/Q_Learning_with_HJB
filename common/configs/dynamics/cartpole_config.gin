@@ -1,0 +1,9 @@
+CartpoleDynamicsConfig.mc = 1
+CartpoleDynamicsConfig.mp = 1
+CartpoleDynamicsConfig.l = 1
+CartpoleDynamicsConfig.g = 1
+CartpoleDynamicsConfig.dt = 0.05
+CartpoleDynamicsConfig.x0_mean = [0, 3.14, 0, 0]
+CartpoleDynamicsConfig.x0_std = [2.4, 0.05, 0, 0]
+CartpoleDynamicsConfig.umin = [-5]
+CartpoleDynamicsConfig.umax = [5]
