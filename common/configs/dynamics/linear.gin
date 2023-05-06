@@ -1,5 +1,9 @@
+LinearDynamicsConfig.seed = 0
 LinearDynamicsConfig.dt = 0.05
-LinearDynamicsConfig.A = [[1,0],[0,1]]
-LinearDynamicsConfig.B = [[1,0],[0,1]]
-LinearDynamicsConfig.umin = [-100,-100]
-LinearDynamicsConfig.umax = [100,100]
+LinearDynamicsConfig.A = [[0,0,1,0],[0,0,0,1],[0,9.81,0,0],[0,19.62,0,0]]
+LinearDynamicsConfig.B = [[0],[0],[1],[1]]
+LinearDynamicsConfig.umin = [-500]
+LinearDynamicsConfig.umax = [500]
+LinearDynamicsConfig.dt = 0.05
+LinearDynamicsConfig.x0_mean = [0, 0, 0, 0]
+LinearDynamicsConfig.x0_std = [2.4, 0.05, 1.0, 0.05]
