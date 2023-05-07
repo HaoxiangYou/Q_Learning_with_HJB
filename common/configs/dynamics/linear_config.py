@@ -12,5 +12,5 @@ class LinearDynamicsConfig(DynamicsConfig):
 
     def __post_init__(self):
         super().__post_init__()
-        self.A = np.array(self.A)
-        self.B = np.array(self.B)
+        self.A = np.array(self.A, dtype=np.float32)
+        self.B = np.array(self.B, dtype=np.float32)
