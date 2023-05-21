@@ -33,6 +33,8 @@ def load_config():
     return dynamics_config, controller_config
 
 def test_policy(nn_policy: VHJBController, dynamics: LinearDynamics, lqr_controller:LQR, T=5):
+    nn_policy.train_mode = False
+
     t_span = np.arange(0, T, dynamics.dt)
     xs_lqr = np.zeros((t_span.shape[0], dynamics.state_dim))
     us_lqr = np.zeros((t_span.shape[0]-1, dynamics.control_dim))
@@ -45,7 +47,7 @@ def test_policy(nn_policy: VHJBController, dynamics: LinearDynamics, lqr_control
     xs_lqr[0] = x0
     xs_learned[0] = x0
     for i in range(1, t_span.shape[0]):
-        u_learned, pVpx = nn_policy.get_control_efforts(nn_policy.model_params, xs_learned[i-1])
+        u_learned, v_gradient, updated_states = nn_policy.get_control_efforts(nn_policy.model_params, nn_policy.model_states, xs_learned[i-1])
         us_learned[i-1] = np.asarray(u_learned)
         us_lqr[i-1] = lqr_controller.get_control_efforts(xs_lqr[i-1])
         
@@ -82,7 +84,7 @@ def test_policy(nn_policy: VHJBController, dynamics: LinearDynamics, lqr_control
     plt.legend()
 
 def draw_Value_contour(nn_policy: VHJBController, lqr_controller: LQR, x_mean: np.ndarray, indices: Tuple[int, int], x_range: np.ndarray, num_of_step=50):
-    quick_apply = jax.jit(nn_policy.value_function_approximator.apply)
+    quick_apply = jax.jit(nn_policy.value_function_approximator.apply, static_argnames=["train"])
 
     x1 = np.linspace(-x_range[indices[0]], x_range[indices[0]], num_of_step)
     x2 = np.linspace(-x_range[indices[1]], x_range[indices[1]], num_of_step)
@@ -95,7 +97,7 @@ def draw_Value_contour(nn_policy: VHJBController, lqr_controller: LQR, x_mean: n
             x = np.copy(x_mean)
             x[indices[0]] += X1[i,j]
             x[indices[1]] += X2[i,j]
-            v_learned[i,j] = quick_apply(nn_policy.model_params, x)
+            v_learned[i,j] = quick_apply({"params":nn_policy.model_params, **nn_policy.model_states}, x, train=False)
             v_lqr[i,j] = x.T @ lqr_controller.P @ x
 
     fig = plt.figure()
@@ -114,19 +116,25 @@ def draw_Value_contour(nn_policy: VHJBController, lqr_controller: LQR, x_mean: n
     ax.set_zlabel('value')
     plt.title("Learned value function levelset")
 
-def local_optimal_x(x: np.ndarray, nn_policy: VHJBController, max_iter=10, lr=1e-1, verbose=True):
+def local_optimal_x(x: np.ndarray, nn_policy: VHJBController, max_iter=10, lr=1e-1, verbose=True, newton_method=True):
     """
     This function aim to find a local minimal value around x,
     the local minimal can further served for debug purpose. 
     """
-    quick_hess_fn = jax.jit(jax.hessian(nn_policy.value_function_approximator.apply, argnums=1))
+    nn_policy.train_mode = False
+
+    quick_hess_fn = jax.jit(jax.hessian(nn_policy.value_function_approximator.apply, argnums=1), static_argnames=["train"])
+    
     for i in range(max_iter):
-        value = nn_policy.value_function_approximator.apply(nn_policy.model_params, x)
-        u, v_gradient = nn_policy.get_control_efforts(nn_policy.model_params, x)
-        hess = quick_hess_fn(nn_policy.model_params, x)
+        value = nn_policy.value_function_approximator.apply({"params":nn_policy.model_params, **nn_policy.model_states}, x, train=False)
+        u, v_gradient, updated_states = nn_policy.get_control_efforts(nn_policy.model_params, nn_policy.model_states, x)
+        hess = quick_hess_fn({"params":nn_policy.model_params, **nn_policy.model_states}, x, train=False)
         if verbose:
             print(f"iter:{i}, x: {x}, value:{value:.5f}, \n u:{u} v_gradient:{v_gradient} \n hess:{hess}")
-        x -= lr * jax.numpy.linalg.inv(hess) @ v_gradient
+        if np.linalg.det(hess) > 0 and newton_method:
+            x -= lr * jax.numpy.linalg.inv(hess) @ v_gradient
+        else:
+            x -= lr * v_gradient
     return x
 
 def main():

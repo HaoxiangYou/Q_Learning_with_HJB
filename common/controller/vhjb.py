@@ -20,11 +20,20 @@ class ValueFunctionApproximator(nn.Module):
     std: jnp.ndarray
 
     @nn.compact
-    def __call__(self, x: jnp.ndarray) -> jnp.float32:
+    def __call__(self, x: jnp.ndarray, train: bool) -> jnp.float32:
+        norm = partial(
+            nn.BatchNorm,
+            use_running_average=not train,
+            axis_name="batch"
+        )
+
         x = (x - self.mean) / self.std
+
         for i, feature in enumerate(self.features):
             x = nn.Dense(feature)(x)
+            x = norm()(x)
             x = nn.relu(x)
+
         x = nn.Dense(1)(x)
         return jnp.squeeze(x)
 
@@ -74,7 +83,10 @@ class VHJBController(Controller):
             mean=config.normalization_mean, 
             std=config.normalization_std)
         self.key, key_to_use = jax.random.split(self.key)
-        self.model_params = self.value_function_approximator.init(key_to_use, jnp.zeros(self.state_dim))
+        self.train_mode = False
+        model_variables = self.value_function_approximator.init(key_to_use, jnp.zeros((1,self.state_dim)), train=self.train_mode)
+        self.model_states, self.model_params = model_variables.pop('params')
+        del model_variables
         self.optimizer = optax.adam(learning_rate=config.lr)
         self.optimizer_states = self.optimizer.init(self.model_params)
         self.loss_fn = jnp.abs
@@ -122,7 +134,7 @@ class VHJBController(Controller):
                 trajectory.append((x, u, cost, done)) 
                 break
             else:
-                u, v_gradient = self.get_control_efforts(self.model_params, x)
+                u, v_gradient, updated_states = self.get_control_efforts(self.model_params, self.model_states, x)
                 u = np.asarray(u) + std * np.random.uniform(low=-1, high=1, size=(self.control_dim,))
                 cost = self.running_cost(x,u) * self.dynamics.dt
                 trajectory.append((x, u, cost, done)) 
@@ -144,55 +156,58 @@ class VHJBController(Controller):
             total_cost += cost
         return total_cost
 
-    def get_v_gradient(self, params, x):
-        return jax.grad(self.value_function_approximator.apply, argnums=1)(params, x)
+    def get_v_gradient(self, params, states, x):
+        return jax.grad(self.value_function_approximator.apply, argnums=1, has_aux=True)({'params': params, **states}, x, train=self.train_mode, mutable=list(states.keys()))
 
     @partial(jax.jit, static_argnums=(0,))
-    def get_control_efforts(self, params, x) -> Tuple[jnp.ndarray, jnp.ndarray]:
+    def get_control_efforts(self, params, states, x) -> Tuple[jnp.ndarray, jnp.ndarray]:
         """
         This function give the optimal input given, value function params, state.
         The jit decorator is used to accelerate the computing
 
         params:
-            params: state_dict for neural networks
+            params: model params for neural networks
+            states: model states such as batch norm statistics for neural networks
             x: state
-            std: scale for the noise
         returns:
-            a tuple of optimal u and v_gradient
+            a tuple of optimal u and v_gradient and updated model states
         """
-        v_gradient = self.get_v_gradient(params, x)
+        v_gradient, updated_states = self.get_v_gradient(params, states, x)
         f_1, f_2 = self.dynamics.get_control_affine_matrix(x)
         u = -self.R_inv @ f_2.T @ v_gradient / 2
-        return u, v_gradient
+        return u, v_gradient, updated_states
     
-    def hjb_loss(self, params, xs, dones):
+    def hjb_loss(self, params, states, xs, dones):
         def loss(x, done):
             f_1, f_2 = self.dynamics.get_control_affine_matrix(x)
-            u, v_gradient = self.get_control_efforts(params, x)
+            u, v_gradient, updated_states = self.get_control_efforts(params, states, x)
             x_dot = f_1 + f_2 @ u
             v_dot = v_gradient.T @ x_dot
             loss = self.loss_fn(v_dot + self.running_cost(x, u)) * (1-done)
-            return loss
-        return jnp.mean(jax.vmap(loss)(xs, dones), axis=0)
+            return loss, updated_states
+        batch_losses, updated_states = jax.vmap(
+            loss, out_axes=(0, None), axis_name='batch'
+        )(xs, dones)
+        return jnp.mean(batch_losses, axis=0), updated_states
     
-    def termination_loss(self, params, xs, dones, costs):
+    def termination_loss(self, params, states, xs, dones, costs):
         def loss(x, done, cost):
-            v = self.value_function_approximator.apply(params, x)
-            return self.loss_fn(v-cost) * done
-        return jnp.mean(jax.vmap(loss)(xs, dones, costs), axis=0)
-    
-    def total_loss(self, params, xs, dones, rewards, regularization):
-        return self.hjb_loss(params, xs, dones) + regularization * self.termination_loss(params, xs, dones, rewards)
+            v, updated_states = self.value_function_approximator.apply({'params': params, **states}, x, train=self.train_mode, mutable=list(states.keys()))
+            return self.loss_fn(v-cost) * done, updated_states
+        batch_losses, updated_states = jax.vmap(
+            loss, out_axes=(0, None), axis_name='batch'
+        )(xs, dones, costs)
+        return jnp.mean(batch_losses, axis=0), updated_states
 
     @partial(jax.jit, static_argnums=(0,))
-    def params_update(self, params, optimizer_state, xs, dones, costs, regularization):
-        hjb_loss, hjb_grad = jax.value_and_grad(self.hjb_loss)(params, xs, dones)
-        termination_loss, termination_grad = jax.value_and_grad(self.termination_loss)(params, xs, dones, costs)
+    def params_update(self, params, states, optimizer_state, xs, dones, costs, regularization):
+        (hjb_loss, updated_states), hjb_grad = jax.value_and_grad(self.hjb_loss, has_aux=True)(params, states, xs, dones)
+        (termination_loss, updated_states), termination_grad = jax.value_and_grad(self.termination_loss, has_aux=True)(params, states, xs, dones, costs)
         total_loss = hjb_loss + regularization * termination_loss
         total_grad = jax.tree_util.tree_map(lambda g1, g2: g1 + regularization * g2, hjb_grad, termination_grad)
         updates, optimizer_state = self.optimizer.update(total_grad, optimizer_state)
         params = optax.apply_updates(params, updates)
-        return params, optimizer_state, total_loss, hjb_loss, termination_loss
+        return params, updated_states, optimizer_state, total_loss, hjb_loss, termination_loss
     
     def train(self):
         trajectory_costs = 0
@@ -207,9 +222,10 @@ class VHJBController(Controller):
             total_losses = 0
             hjb_losses = 0
             termination_losses = 0
+            self.train_mode = True
             for i, (xs, us, costs, dones) in enumerate(self.dataloader):
-                self.model_params, self.optimizer_states, total_loss, hjb_loss, termination_loss = self.params_update(
-                    self.model_params, self.optimizer_states, xs, dones, costs, self.regularization
+                self.model_params, self.model_states, self.optimizer_states, total_loss, hjb_loss, termination_loss = self.params_update(
+                    self.model_params, self.model_states, self.optimizer_states, xs, dones, costs, self.regularization
                 )
                 total_losses += total_loss
                 hjb_losses += hjb_loss
@@ -220,6 +236,7 @@ class VHJBController(Controller):
         
         for epoch in range(self.epochs):
             trajectory_costs = 0
+            self.train_mode = False
             for _ in range(self.num_of_trajectories_per_epoch):
                 trajectory = self.rollout_trajectory(std=self.input_std)
                 trajectory_costs += self.get_trajectory_cost(trajectory)
@@ -227,9 +244,10 @@ class VHJBController(Controller):
             total_losses = 0
             hjb_losses = 0
             termination_losses = 0
+            self.train_mode = True
             for i, (xs, us, costs, dones) in enumerate(self.dataloader):
-                self.model_params, self.optimizer_states, total_loss, hjb_loss, termination_loss = self.params_update(
-                    self.model_params, self.optimizer_states, xs, dones, costs, self.regularization
+                self.model_params, self.model_states, self.optimizer_states, total_loss, hjb_loss, termination_loss = self.params_update(
+                    self.model_params, self.model_states, self.optimizer_states, xs, dones, costs, self.regularization
                 )
                 total_losses += total_loss
                 hjb_losses += hjb_loss
@@ -241,5 +259,3 @@ class VHJBController(Controller):
 
             if (epoch +1) % self.std_decay_step == 0:
                 self.input_std *= self.std_decay_rate
-
-            self.regularization *= 0.95
