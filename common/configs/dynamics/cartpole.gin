@@ -1,3 +1,4 @@
+CartpoleDynamicsConfig.seed = 0
 CartpoleDynamicsConfig.mc = 1
 CartpoleDynamicsConfig.mp = 1
 CartpoleDynamicsConfig.l = 1

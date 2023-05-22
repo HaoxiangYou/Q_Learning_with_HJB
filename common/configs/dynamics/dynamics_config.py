@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-import numpy as np
+import jax.numpy as jnp
 from typing import Sequence 
 
 @dataclass
@@ -12,9 +12,9 @@ class DynamicsConfig:
     x0_std: Sequence[float]
 
     def __post_init__(self):
-        self.x0_mean = np.array(self.x0_mean, dtype=np.float32)
-        self.x0_std = np.array(self.x0_std, dtype=np.float32)
-        self.umin = np.array(self.umin, dtype=np.float32)
-        self.umax = np.array(self.umax, dtype=np.float32)
+        self.x0_mean = jnp.array(self.x0_mean, dtype=jnp.float32)
+        self.x0_std = jnp.array(self.x0_std, dtype=jnp.float32)
+        self.umin = jnp.array(self.umin, dtype=jnp.float32)
+        self.umax = jnp.array(self.umax, dtype=jnp.float32)
         self.state_dim = self.x0_mean.shape[0]
         self.control_dim = self.umin.shape[0]

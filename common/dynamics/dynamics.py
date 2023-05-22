@@ -1,16 +1,16 @@
-import numpy as np
+import jax
+import jax.numpy as jnp
 from typing import Tuple
-from  scipy.integrate import solve_ivp
 from common.configs.dynamics.dynamics_config import DynamicsConfig
 class Dynamics:
 
     dt: float
     state_dim: int
     control_dim: int
-    x0_mean: np.ndarray
-    x0_std: np.ndarray
-    umin: np.ndarray
-    umax: np.ndarray
+    x0_mean: jnp.ndarray
+    x0_std: jnp.ndarray
+    umin: jnp.ndarray
+    umax: jnp.ndarray
 
     def __init__(self, config: DynamicsConfig) -> None:
         self.state_dim = config.state_dim
@@ -20,10 +20,11 @@ class Dynamics:
         self.umax = config.umax
         self.x0_mean = config.x0_mean
         self.x0_std = config.x0_std
-        np.random.seed(config.seed)
+        self.random_key = jax.random.PRNGKey(config.seed)
 
-    def get_initial_state(self,) -> np.ndarray:
-        return self.states_wrap(np.random.uniform(low=-self.x0_std, high=self.x0_std) + self.x0_mean)
+    def get_initial_state(self,) -> jnp.ndarray:
+        self.random_key, key_to_use = jax.random.split(self.random_key)
+        return self.states_wrap(jax.random.uniform(key_to_use, shape=(self.state_dim, ), minval=-self.x0_std, maxval=self.x0_std) + self.x0_mean)
 
     def get_dimension(self,) -> Tuple[int, int]:
         """
@@ -32,25 +33,25 @@ class Dynamics:
         """
         return self.state_dim, self.control_dim
 
-    def get_control_affine_matrix(self, x) -> Tuple[np.ndarray, np.ndarray]:
+    def get_control_affine_matrix(self, x) -> Tuple[jnp.ndarray, jnp.ndarray]:
         raise NotImplementedError
     
-    def get_control_limit(self,) -> Tuple[np.ndarray, np.ndarray]:
+    def get_control_limit(self,) -> Tuple[jnp.ndarray, jnp.ndarray]:
         return self.umin, self.umax
     
-    def get_M(self, x:np.ndarray) -> np.ndarray:
+    def get_M(self, x:jnp.ndarray) -> jnp.ndarray:
         raise NotImplementedError
     
-    def get_C(self, x:np.ndarray) -> np.ndarray:
+    def get_C(self, x:jnp.ndarray) -> jnp.ndarray:
         raise NotImplementedError
     
-    def get_G(self, x:np.ndarray) -> np.ndarray:
+    def get_G(self, x:jnp.ndarray) -> jnp.ndarray:
         raise NotImplementedError
     
-    def get_B(self) -> np.ndarray:
+    def get_B(self) -> jnp.ndarray:
         raise NotImplementedError
     
-    def states_wrap(self, x:np.ndarray) -> np.ndarray:
+    def states_wrap(self, x:jnp.ndarray) -> jnp.ndarray:
         """
         wrap the states into valid range
 
@@ -61,7 +62,7 @@ class Dynamics:
         """
         raise NotImplementedError
     
-    def get_control_affine_matrix(self, x:np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def get_control_affine_matrix(self, x:jnp.ndarray) -> Tuple[jnp.ndarray, jnp.ndarray]:
         """
             x_dot = f_1(x) + f_2(x) u
             params:
@@ -76,10 +77,6 @@ class Dynamics:
 
         state_dim, control_dim = self.get_dimension()
 
-        f_1 = np.zeros((state_dim,))
-        f_2 = np.zeros((state_dim,control_dim))
-
-
         q, dq = x[:(state_dim//2)], x[(state_dim//2):]
 
         M = self.get_M(x)
@@ -89,10 +86,9 @@ class Dynamics:
         G = self.get_G(x)
         B = self.get_B()
 
-        f_1[:(state_dim//2)] = dq
-        f_1[(state_dim//2):] = -np.linalg.inv(M) @ (np.dot(C, dq)  + G)
+        f_1 = jnp.hstack([dq,-jnp.linalg.inv(M) @ (jnp.dot(C, dq)  + G)])
 
-        f_2[(state_dim//2):,:] = (np.linalg.inv(M) @ B).reshape(-1,control_dim) 
+        f_2 = jnp.vstack([jnp.zeros((state_dim//2, control_dim)), (jnp.linalg.inv(M) @ B).reshape(-1,control_dim)]) 
 
         return f_1, f_2
     
@@ -107,21 +103,14 @@ class Dynamics:
 
         return xdot.squeeze()
 
-    def simulate(self, x, u, dt=None):
+    def simulate(self, x, u):
         """
         Simulate the open loop acrobot for one step
         """
 
         # make sure u is within the range
-        u = np.clip(u, self.umin, self.umax)
-        
-        def f(t, x):
-            return self.dynamics_step(x,u)
-        if dt:
-            sol = solve_ivp(f, (0,dt), x)
-        else:
-            sol = solve_ivp(f, (0,self.dt), x)
+        u = jnp.clip(u, self.umin, self.umax)
 
-        state = self.states_wrap(sol.y[:,-1].ravel()).squeeze()
+        state = self.states_wrap(x + self.dynamics_step(x, u)*self.dt)
 
         return state
