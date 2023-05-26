@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 import gin
-import jax.numpy as jnp
+import numpy as np
 from typing import Sequence
 
 @gin.configurable
@@ -38,10 +38,10 @@ class VHJBControllerConfig:
     obs_max: Sequence[float]
 
     def __post_init__(self):
-        self.normalization_mean = jnp.array(self.normalization_mean, dtype=jnp.float32)
-        self.normalization_std = jnp.array(self.normalization_std, dtype=jnp.float32)
-        self.Q = jnp.array(self.Q, dtype=jnp.float32)
-        self.R = jnp.array(self.R, dtype=jnp.float32)
-        self.xf = jnp.array(self.xf, dtype=jnp.float32)
-        self.obs_min = jnp.array(self.obs_min, dtype=jnp.float32)
-        self.obs_max = jnp.array(self.obs_max, dtype=jnp.float32)
+        self.normalization_mean = np.array(self.normalization_mean, dtype=np.float32)
+        self.normalization_std = np.array(self.normalization_std, dtype=np.float32)
+        self.Q = np.array(self.Q, dtype=np.float32)
+        self.R = np.array(self.R, dtype=np.float32)
+        self.xf = np.array(self.xf, dtype=np.float32)
+        self.obs_min = np.array(self.obs_min, dtype=np.float32)
+        self.obs_max = np.array(self.obs_max, dtype=np.float32)

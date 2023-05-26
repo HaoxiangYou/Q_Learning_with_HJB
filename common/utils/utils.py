@@ -1,11 +1,11 @@
-import jax.numpy as jnp
+import numpy as np
 
 # For torch Dataloader to collate jax numpy
-def jnp_collate(batch):
-  if isinstance(batch[0], jnp.ndarray):
-    return jnp.stack(batch)
+def np_collate(batch):
+  if isinstance(batch[0], np.ndarray):
+    return np.stack(batch)
   elif isinstance(batch[0], (tuple,list)):
     transposed = zip(*batch)
-    return [jnp_collate(samples) for samples in transposed]
+    return [np_collate(samples) for samples in transposed]
   else:
-    return jnp.array(batch)
+    return np.array(batch)

@@ -1,9 +1,11 @@
 import jax.numpy as jnp
-from common.dynamics.dynamics import Dynamics
+import numpy as np
+from typing import Union
 import matplotlib.pyplot as plt
 from matplotlib import animation
 from matplotlib.patches import Rectangle, Circle
 from common.configs.dynamics.cartpole_config import CartpoleDynamicsConfig
+from common.dynamics.dynamics import Dynamics
 
 class Cartpole(Dynamics):
 
@@ -14,38 +16,57 @@ class Cartpole(Dynamics):
         self.l = config.l
         self.g = config.g
     
-    def get_M(self, x: jnp.ndarray) -> jnp.ndarray:
-        return jnp.array([
-            [self.mc+self.mp, self.mp*self.l*jnp.cos(x[1])],
-            [self.mp*self.l*jnp.cos(x[1]), self.mp*self.l**2]
-        ])
+    def get_M(self, x: Union[jnp.ndarray, np.ndarray]) -> Union[jnp.ndarray, np.ndarray]:
+        if isinstance(x, jnp.ndarray):
+            return jnp.array([
+                [self.mc+self.mp, self.mp*self.l*jnp.cos(x[1])],
+                [self.mp*self.l*jnp.cos(x[1]), self.mp*self.l**2]
+            ])
+        else:
+            return np.array([
+                [self.mc+self.mp, self.mp*self.l*np.cos(x[1])],
+                [self.mp*self.l*np.cos(x[1]), self.mp*self.l**2]
+            ])
     
-    def get_C(self, x: jnp.ndarray) -> jnp.ndarray:
-        return jnp.array([
-            [0, -self.mp*self.l*x[3]*jnp.sin(x[1])],
-            [0, 0]
-        ])
+    def get_C(self, x: Union[jnp.ndarray, np.ndarray]) -> Union[jnp.ndarray, np.ndarray]:
+        if isinstance(x, jnp.ndarray):
+            return jnp.array([
+                [0, -self.mp*self.l*x[3]*jnp.sin(x[1])],
+                [0, 0]
+            ])
+        else:
+            return np.array([
+                [0, -self.mp*self.l*x[3]*np.sin(x[1])],
+                [0, 0]
+            ])
 
-    def get_G(self, x: jnp.ndarray) -> jnp.ndarray:
-        return jnp.array([0, self.mp*self.g*self.l*jnp.sin(x[1])])
+    def get_G(self, x: Union[jnp.ndarray, np.ndarray]) -> Union[jnp.ndarray, np.ndarray]:
+        if isinstance(x, jnp.ndarray):
+            return jnp.array([0, self.mp*self.g*self.l*jnp.sin(x[1])])
+        else:
+            return np.array([0, self.mp*self.g*self.l*np.sin(x[1])])
 
-    def get_B(self) -> jnp.ndarray:
-        return jnp.array([1,0])
+    def get_B(self) -> np.ndarray:
+        return np.array([1,0])
     
-    def states_wrap(self, x: jnp.ndarray) -> jnp.ndarray:
+    def states_wrap(self, x: Union[jnp.ndarray, np.ndarray]) -> Union[jnp.ndarray, np.ndarray]:
         assert x.shape == (4,)
-        x1_wrapped = jnp.remainder(x[1] + jnp.pi, 2*jnp.pi) - jnp.pi
-        return jnp.array([x[0], x1_wrapped, x[2], x[3]])
+        if isinstance(x, jnp.ndarray):
+            x1_wrapped = jnp.remainder(x[1] + jnp.pi, 2*jnp.pi) - jnp.pi
+            return jnp.array([x[0], x1_wrapped, x[2], x[3]])
+        else:
+            x1_wrapped = np.remainder(x[1] + np.pi, 2*np.pi) - np.pi
+            return np.array([x[0], x1_wrapped, x[2], x[3]])
         
-    def plot_trajectory(self, ts:jnp.ndarray, xs:jnp.ndarray, 
-                    cart_width=0.4, cart_height=0.2, pole_radius=0.05, x_range=jnp.array([-2, 2]), y_range=jnp.array([-1,3])):
+    def plot_trajectory(self, ts:np.ndarray, xs:np.ndarray, 
+                    cart_width=0.4, cart_height=0.2, pole_radius=0.05, x_range=np.array([-2, 2]), y_range=np.array([-1,3])):
     
         fig = plt.figure()
         ax = plt.axes()
 
         def draw_frame(i):
-            pole_x = xs[i,0] + self.l * jnp.cos(xs[i,1]-jnp.pi/2) 
-            pole_y = self.l * jnp.sin(xs[i,1]-jnp.pi/2) 
+            pole_x = xs[i,0] + self.l * np.cos(xs[i,1]-np.pi/2) 
+            pole_y = self.l * np.sin(xs[i,1]-np.pi/2) 
             
             ax.clear()
             ax.axis('equal')
@@ -78,7 +99,7 @@ if __name__ == "__main__":
     cartpole = Cartpole(config)
     t0 = 0
     tf = 5
-    t = jnp.arange(t0, tf, cartpole.dt)
+    t = np.arange(t0, tf, cartpole.dt)
     x0 = cartpole.get_initial_state()
 
     xs = [x0]
@@ -88,9 +109,9 @@ if __name__ == "__main__":
         us.append(0)
         xs.append(cartpole.simulate(xs[i-1],us[i-1]))
 
-    xs = jnp.array(xs)
-    us = jnp.array(us)
-    xs.at[:,1].set(jnp.arctan2(jnp.sin(xs[:,1]), jnp.cos(xs[:,1])))
+    xs = np.array(xs)
+    us = np.array(us)
+    xs[:,1] = np.arctan2(np.sin(xs[:,1]), np.cos(xs[:,1]))
 
     anim, fig = cartpole.plot_trajectory(t, xs)
 

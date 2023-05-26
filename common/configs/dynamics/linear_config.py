@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 import gin
-import jax.numpy as jnp
+import numpy as np
 from typing import Sequence
 from common.configs.dynamics.dynamics_config import DynamicsConfig
 
@@ -12,5 +12,5 @@ class LinearDynamicsConfig(DynamicsConfig):
 
     def __post_init__(self):
         super().__post_init__()
-        self.A = jnp.array(self.A, dtype=jnp.float32)
-        self.B = jnp.array(self.B, dtype=jnp.float32)
+        self.A = np.array(self.A, dtype=np.float32)
+        self.B = np.array(self.B, dtype=np.float32)

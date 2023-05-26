@@ -6,13 +6,13 @@ import numpy as np
 import scipy.linalg
 import torch
 from torch.utils.data import Dataset, DataLoader
-from typing import Sequence, List, Tuple
+from typing import Sequence, List, Tuple, Union
 from collections import deque
 from functools import partial
 from common.controller.controller import Controller
 from common.dynamics.dynamics import Dynamics
 from common.configs.controller.vhjb_controller_config import VHJBControllerConfig
-from common.utils.utils import jnp_collate
+from common.utils.utils import np_collate
 
 class ValueFunctionApproximator(nn.Module):
     features: Sequence[int]
@@ -104,27 +104,30 @@ class VHJBController(Controller):
         self.warmup_trajectories = config.warmup_trajectories
 
         one_trajectory = self.rollout_trajectory()
-        self.reply_buffer = StatesDataset(one_trajectory, config.maximum_buffer_size)
-        self.dataloader = DataLoader(self.reply_buffer, batch_size=self.batch_size, shuffle=True, collate_fn=jnp_collate)
+        self.replay_buffer = StatesDataset(one_trajectory, config.maximum_buffer_size)
+        # The drop last was true to prevent jax jit recompile over and over again 
+        # because the size of last batch may change due to replay buffer change
+        self.dataloader = DataLoader(self.replay_buffer, batch_size=self.batch_size, shuffle=True, collate_fn=np_collate, drop_last=True)
 
     def system_additional_init(self) -> None:
         # Linearized the dynamics around the xf,
         # Assume f(xf,0) = 0, which means xf is an equilibrium points with 0 input
         uf = jnp.zeros((self.control_dim,), dtype=jnp.float32)
         Alin, Blin = jax.jacobian(jax.jit(self.dynamics.dynamics_step), argnums=[0,1])(self.xf, uf)
-        self.P = scipy.linalg.solve_continuous_are(Alin, Blin, self.Q, self.R)
+        self.P = jnp.asarray(scipy.linalg.solve_continuous_are(Alin, Blin, self.Q, self.R))
 
-    def running_cost(self, x, u):
+    def running_cost(self, x: Union[np.ndarray, jnp.ndarray], u:Union[np.ndarray, jnp.ndarray]) -> Union[np.ndarray, jnp.ndarray]:
         x_diff = self.dynamics.states_wrap(x - self.xf)
         return x_diff.T @ self.Q @ x_diff + u.T @ self.R @ u
 
-    def termination_cost(self, x):
+    def termination_cost(self, x: Union[np.ndarray, jnp.ndarray]) -> Union[np.ndarray, jnp.ndarray]:
         x_diff = self.dynamics.states_wrap(x-self.xf)
         return x_diff.T @ self.P @ x_diff
     
     def rollout_trajectory(self, std=0) -> List[Tuple[np.ndarray, np.ndarray, float, float]]:
         trajectory = []
         x = self.dynamics.get_initial_state()
+
         done = 0.0
         for i in range(self.maximum_timestep):
             if np.any(x > self.obs_max) or np.any(x < self.obs_min):
@@ -138,8 +141,6 @@ class VHJBController(Controller):
                 u = np.asarray(u) + std * np.random.uniform(low=-1, high=1, size=(self.control_dim,))
                 cost = self.running_cost(x,u) * self.dynamics.dt
                 trajectory.append((x, u, cost, done)) 
-                # TODO maybe change whole dynamics to jnp (to use jit to accelerate)
-                # then should leave u as jnp array
                 x = self.dynamics.simulate(x,u)
 
         if done == 0.0:
@@ -165,11 +166,12 @@ class VHJBController(Controller):
         This function give the optimal input given, value function params, state.
         The jit decorator is used to accelerate the computing
 
-        params:
+        Args:
             params: model params for neural networks
             states: model states such as batch norm statistics for neural networks
             x: state
-        returns:
+        
+        Returns:
             a tuple of optimal u and v_gradient and updated model states
         """
         v_gradient, updated_states = self.get_v_gradient(params, states, x)
@@ -201,6 +203,31 @@ class VHJBController(Controller):
 
     @partial(jax.jit, static_argnums=(0,))
     def params_update(self, params, states, optimizer_state, xs, dones, costs, regularization):
+        """
+        Apply one step update to the neural network params and states.
+        
+        Note, every attribute may change in the function should pass explicitly as arguments, 
+        because the jit will treat the self object as immutable dictionary, 
+        TODO a better implemmentation will build entire class as pytree
+        see:https://jax.readthedocs.io/en/latest/faq.html#strategy-3-making-customclass-a-pytree
+
+        Args:
+            params: params for neural network
+            states: state params such as batch norm statistics for nerual network
+            optimizer_state: state params for optimizer
+            xs: a batch of states
+            dones: a batch of flags
+            costs: a batch termination costs for each states, this is only useful when done flag is true
+            regularization: the hyperparameters to balance the termination cost and hjb cost
+       
+        Returns:
+            params: updated neural network params
+            updated_states: updated neural network state params
+            optimizer_state: updated optimizer state
+            total_loss: hjb_loss + regularization * termination_loss
+            hjb_loss: loss for hjb (interior loss for pde)
+            termination_loss, loss for termination states (boundary conditions)
+        """
         (hjb_loss, updated_states), hjb_grad = jax.value_and_grad(self.hjb_loss, has_aux=True)(params, states, xs, dones)
         (termination_loss, updated_states), termination_grad = jax.value_and_grad(self.termination_loss, has_aux=True)(params, states, xs, dones, costs)
         total_loss = hjb_loss + regularization * termination_loss
@@ -214,7 +241,7 @@ class VHJBController(Controller):
         for _ in range(self.warmup_trajectories-1):
             trajectory  = self.rollout_trajectory(self.input_std)
             trajectory_costs += self.get_trajectory_cost(trajectory)
-            self.reply_buffer.xs.extend(trajectory)
+            self.replay_buffer.xs.extend(trajectory)
 
         print(f"Average trajectory cost for a random policy is {trajectory_costs/self.warmup_trajectories:.2f}")
 
@@ -240,7 +267,7 @@ class VHJBController(Controller):
             for _ in range(self.num_of_trajectories_per_epoch):
                 trajectory = self.rollout_trajectory(std=self.input_std)
                 trajectory_costs += self.get_trajectory_cost(trajectory)
-                self.reply_buffer.xs.extend(trajectory)
+                self.replay_buffer.xs.extend(trajectory)
             total_losses = 0
             hjb_losses = 0
             termination_losses = 0

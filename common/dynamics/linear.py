@@ -1,8 +1,8 @@
 import numpy as np
-import torch
+import jax.numpy as jnp
 from common.dynamics.dynamics import Dynamics
 from common.configs.dynamics.linear_config import LinearDynamicsConfig
-from typing import Tuple
+from typing import Tuple, Union
 
 class LinearDynamics(Dynamics):
     def __init__(self, config: LinearDynamicsConfig) -> None:
@@ -14,7 +14,7 @@ class LinearDynamics(Dynamics):
         self.A = config.A
         self.B = config.B
 
-    def states_wrap(self, x:np.ndarray) -> np.ndarray:
+    def states_wrap(self, x:Union[np.ndarray, jnp.ndarray]) -> Union[np.ndarray, jnp.ndarray]:
         return x
     
     def get_control_affine_matrix(self, x:np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
