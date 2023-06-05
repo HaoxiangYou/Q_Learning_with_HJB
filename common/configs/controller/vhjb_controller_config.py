@@ -21,13 +21,18 @@ class VHJBControllerConfig:
     batch_size: int
     regularization: float
 
+    # dataset
+    num_of_interior_data: int
+    num_of_boundary_data: int
+    interior_states_mean: Sequence[float]
+    interior_states_std: Sequence[float]
+    boundary_states_mean: Sequence[float]
+    boundary_states_std: Sequence[float]
+    boundary_cost_clip: float
+
     # trajectories sample hyperparameters
-    warmup_trajectories: int
     num_of_trajectories_per_epoch: int
     maximum_step: int
-    input_std: float
-    std_decay_rate: float
-    std_decay_step: int
     maximum_buffer_size: int
 
     # task related hyperparameters
@@ -43,5 +48,9 @@ class VHJBControllerConfig:
         self.Q = np.array(self.Q, dtype=np.float32)
         self.R = np.array(self.R, dtype=np.float32)
         self.xf = np.array(self.xf, dtype=np.float32)
+        self.interior_states_mean = np.array(self.interior_states_mean, dtype=np.float32)
+        self.interior_states_std = np.array(self.interior_states_std, dtype=np.float32)
+        self.boundary_states_mean = np.array(self.boundary_states_mean, dtype=np.float32)
+        self.boundary_states_std = np.array(self.boundary_states_std, dtype=np.float32)
         self.obs_min = np.array(self.obs_min, dtype=np.float32)
         self.obs_max = np.array(self.obs_max, dtype=np.float32)

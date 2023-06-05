@@ -96,15 +96,25 @@ class VHJBController(Controller):
         self.batch_size = config.batch_size
 
         # Initial dataset and reply buffer
-        self.input_std = config.input_std
-        self.std_decay_rate = config.std_decay_rate
-        self.std_decay_step = config.std_decay_step
         self.maximum_timestep = config.maximum_step
         self.num_of_trajectories_per_epoch = config.num_of_trajectories_per_epoch
-        self.warmup_trajectories = config.warmup_trajectories
 
-        one_trajectory = self.rollout_trajectory()
-        self.replay_buffer = StatesDataset(one_trajectory, config.maximum_buffer_size)
+        interior_states = [self.dynamics.states_wrap(np.random.uniform(low=-1, high=1, size=self.state_dim) * 
+                            config.interior_states_std + config.interior_states_mean)
+                           for _ in range(config.num_of_interior_data)]
+        interior_dones = [0] * config.num_of_interior_data
+        interior_costs = [0] * config.num_of_interior_data
+
+        boundary_states = [self.dynamics.states_wrap(np.random.uniform(low=-1, high=1, size=self.state_dim) * 
+                            config.boundary_states_std + config.boundary_states_mean)
+                           for _ in range(config.num_of_boundary_data)]
+        boundary_dones = [1] * config.num_of_boundary_data
+        boundary_costs = [min(self.termination_cost(x), config.boundary_cost_clip) for x in boundary_states]
+
+        data = list(zip(interior_states, interior_costs, interior_dones))
+        data.extend(list(zip(boundary_states, boundary_costs, boundary_dones)))
+
+        self.replay_buffer = StatesDataset(data, config.maximum_buffer_size)
         # The drop last was true to prevent jax jit recompile over and over again 
         # because the size of last batch may change due to replay buffer change
         self.dataloader = DataLoader(self.replay_buffer, batch_size=self.batch_size, shuffle=True, collate_fn=np_collate, drop_last=True)
@@ -112,9 +122,9 @@ class VHJBController(Controller):
     def system_additional_init(self) -> None:
         # Linearized the dynamics around the xf,
         # Assume f(xf,0) = 0, which means xf is an equilibrium points with 0 input
-        uf = jnp.zeros((self.control_dim,), dtype=jnp.float32)
+        uf = np.zeros((self.control_dim,), dtype=np.float32)
         Alin, Blin = jax.jacobian(jax.jit(self.dynamics.dynamics_step), argnums=[0,1])(self.xf, uf)
-        self.P = jnp.asarray(scipy.linalg.solve_continuous_are(Alin, Blin, self.Q, self.R))
+        self.P = scipy.linalg.solve_continuous_are(Alin, Blin, self.Q, self.R)
 
     def running_cost(self, x: Union[np.ndarray, jnp.ndarray], u:Union[np.ndarray, jnp.ndarray]) -> Union[np.ndarray, jnp.ndarray]:
         x_diff = self.dynamics.states_wrap(x - self.xf)
@@ -124,7 +134,7 @@ class VHJBController(Controller):
         x_diff = self.dynamics.states_wrap(x-self.xf)
         return x_diff.T @ self.P @ x_diff
     
-    def rollout_trajectory(self, std=0) -> List[Tuple[np.ndarray, np.ndarray, float, float]]:
+    def rollout_trajectory(self) -> List[Tuple[np.ndarray, np.ndarray, float, float]]:
         trajectory = []
         x = self.dynamics.get_initial_state()
 
@@ -133,27 +143,23 @@ class VHJBController(Controller):
             if np.any(x > self.obs_max) or np.any(x < self.obs_min):
                 done = 1.0
                 cost = self.termination_cost(x)
-                u = np.zeros(self.control_dim)
-                trajectory.append((x, u, cost, done)) 
+                trajectory.append((x, cost, done)) 
                 break
             else:
                 u, v_gradient, updated_states = self.get_control_efforts(self.model_params, self.model_states, x)
-                u = np.asarray(u) + std * np.random.uniform(low=-1, high=1, size=(self.control_dim,))
-                cost = self.running_cost(x,u) * self.dynamics.dt
-                trajectory.append((x, u, cost, done)) 
+                trajectory.append((x, 0, done)) 
                 x = self.dynamics.simulate(x,u)
 
         if done == 0.0:
             cost = self.termination_cost(x)
-            u = np.zeros(self.control_dim)
             done = 1.0
-            trajectory.append((x, u, cost, done))
+            trajectory.append((x, cost, done))
 
         return trajectory
     
     def get_trajectory_cost(self, trajectory):
         total_cost = 0.0
-        for x,u, cost, done in trajectory:
+        for x, cost, done in trajectory:
             total_cost += cost
         return total_cost
 
@@ -237,20 +243,13 @@ class VHJBController(Controller):
         return params, updated_states, optimizer_state, total_loss, hjb_loss, termination_loss
     
     def train(self):
-        trajectory_costs = 0
-        for _ in range(self.warmup_trajectories-1):
-            trajectory  = self.rollout_trajectory(self.input_std)
-            trajectory_costs += self.get_trajectory_cost(trajectory)
-            self.replay_buffer.xs.extend(trajectory)
-
-        print(f"Average trajectory cost for a random policy is {trajectory_costs/self.warmup_trajectories:.2f}")
 
         for warmup_epoch in range(self.warmup_epochs):
             total_losses = 0
             hjb_losses = 0
             termination_losses = 0
             self.train_mode = True
-            for i, (xs, us, costs, dones) in enumerate(self.dataloader):
+            for i, (xs, costs, dones) in enumerate(self.dataloader):
                 self.model_params, self.model_states, self.optimizer_states, total_loss, hjb_loss, termination_loss = self.params_update(
                     self.model_params, self.model_states, self.optimizer_states, xs, dones, costs, self.regularization
                 )
@@ -265,14 +264,14 @@ class VHJBController(Controller):
             trajectory_costs = 0
             self.train_mode = False
             for _ in range(self.num_of_trajectories_per_epoch):
-                trajectory = self.rollout_trajectory(std=self.input_std)
+                trajectory = self.rollout_trajectory()
                 trajectory_costs += self.get_trajectory_cost(trajectory)
                 self.replay_buffer.xs.extend(trajectory)
             total_losses = 0
             hjb_losses = 0
             termination_losses = 0
             self.train_mode = True
-            for i, (xs, us, costs, dones) in enumerate(self.dataloader):
+            for i, (xs, costs, dones) in enumerate(self.dataloader):
                 self.model_params, self.model_states, self.optimizer_states, total_loss, hjb_loss, termination_loss = self.params_update(
                     self.model_params, self.model_states, self.optimizer_states, xs, dones, costs, self.regularization
                 )
@@ -283,6 +282,3 @@ class VHJBController(Controller):
             if (epoch+1) % 10 == 0:
                 print(f"epoch:{epoch+1}, average trajectory cost:{trajectory_costs/self.num_of_trajectories_per_epoch:2f}")
                 print(f"epoch:{epoch+1}, total loss:{total_losses/len(self.dataloader):.5f} hjb loss:{hjb_losses/len(self.dataloader):.5f}, termination loss:{termination_losses/len(self.dataloader):.5f}")
-
-            if (epoch +1) % self.std_decay_step == 0:
-                self.input_std *= self.std_decay_rate
