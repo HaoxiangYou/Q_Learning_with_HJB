@@ -50,13 +50,18 @@ class Cartpole(Dynamics):
         return np.array([1,0])
     
     def states_wrap(self, x: Union[jnp.ndarray, np.ndarray]) -> Union[jnp.ndarray, np.ndarray]:
-        assert x.shape == (4,)
+        assert x.shape == (4,) or (x.shape[1] == 4 and x.ndim == 2)
         if isinstance(x, jnp.ndarray):
-            x1_wrapped = jnp.remainder(x[1] + jnp.pi, 2*jnp.pi) - jnp.pi
-            return jnp.array([x[0], x1_wrapped, x[2], x[3]])
+            if x.ndim == 2:
+                return x.at[:,1].set(jnp.remainder(x[:,1] + jnp.pi, 2*jnp.pi) - jnp.pi)
+            else:
+                return x.at[1].set(jnp.remainder(x[1] + jnp.pi, 2*jnp.pi) - jnp.pi)
         else:
-            x1_wrapped = np.remainder(x[1] + np.pi, 2*np.pi) - np.pi
-            return np.array([x[0], x1_wrapped, x[2], x[3]])
+            if x.ndim == 2:
+                x[:,1] = np.remainder(x[:,1] + np.pi, 2*np.pi) - np.pi 
+            else:
+                x[1] = np.remainder(x[1] + np.pi, 2*np.pi) - np.pi 
+            return x
         
     def plot_trajectory(self, ts:np.ndarray, xs:np.ndarray, 
                     cart_width=0.4, cart_height=0.2, pole_radius=0.05, x_range=np.array([-2, 2]), y_range=np.array([-1,3])):
