@@ -18,6 +18,10 @@ class ValueFunctionApproximator(nn.Module):
     features: Sequence[int]
     mean: jnp.ndarray
     std: jnp.ndarray
+    # a flag to indicate whether to use batch norm layer
+    # the flag should remain unchange after initialization
+    # TODO write as a property
+    using_batch_norm: bool
 
     @nn.compact
     def __call__(self, x: jnp.ndarray, train: bool) -> jnp.float32:
@@ -31,7 +35,8 @@ class ValueFunctionApproximator(nn.Module):
 
         for i, feature in enumerate(self.features):
             x = nn.Dense(feature)(x)
-            x = norm()(x)
+            if self.using_batch_norm:
+                x = norm()(x)
             x = nn.relu(x)
 
         x = nn.Dense(1)(x)
@@ -81,7 +86,8 @@ class VHJBController(Controller):
         self.value_function_approximator = ValueFunctionApproximator(
             features=config.features, 
             mean=config.normalization_mean, 
-            std=config.normalization_std)
+            std=config.normalization_std,
+            using_batch_norm=config.using_batch_norm)
         self.key, key_to_use = jax.random.split(self.key)
         self.train_mode = False
         model_variables = self.value_function_approximator.init(key_to_use, jnp.zeros((1,self.state_dim)), train=self.train_mode)

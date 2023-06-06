@@ -2,9 +2,10 @@
 VHJBControllerConfig.seed = 0
 
 # neural model hyperparameters
-VHJBControllerConfig.features = [100, 100]
+VHJBControllerConfig.features = [128, 128]
 VHJBControllerConfig.normalization_mean = [0, 0, 0, 0]
 VHJBControllerConfig.normalization_std = [1.0, 0.2, 4.0, 4.0]
+VHJBControllerConfig.using_batch_norm = False
 
 # training hyperparameters
 VHJBControllerConfig.lr = 1e-3
