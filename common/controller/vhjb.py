@@ -35,12 +35,17 @@ class ValueFunctionApproximator(nn.Module):
 
         for i, feature in enumerate(self.features):
             x = nn.Dense(feature)(x)
-            if self.using_batch_norm:
-                x = norm()(x)
-            x = nn.relu(x)
 
-        x = nn.Dense(1)(x)
-        return jnp.squeeze(x)
+            # apply nonlinearity if not the last feature
+            if not i == len(self.features) - 1:
+                if self.using_batch_norm:
+                    x = norm()(x)
+                x = nn.relu(x)
+        # dot product for last axis
+        # assume the value function can be approximate by some quadratic form
+        x = jnp.einsum('...i,...i->...', x, x)
+
+        return x
 
 class StatesDataset(Dataset):
     def __init__(self, xs:List[Tuple[jnp.ndarray, float, float]], max_size:int) -> None:
