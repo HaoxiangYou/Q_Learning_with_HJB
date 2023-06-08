@@ -1,8 +1,8 @@
 import numpy as np
 import scipy as sp
 import matplotlib.pyplot as plt
-from common.dynamics.cartpole import Cartpole
-from common.controller.controller import Controller
+from dynamics.cartpole import Cartpole
+from controller.controller import Controller
 
 class CartpoleEnergyShapingController(Controller):
     def __init__(self, cartpole:Cartpole, Q=np.eye(4), R=np.eye(1), K=np.array([4, 4, 10]), eps_energy=1, eps_state=1) -> None:
@@ -159,7 +159,7 @@ def test_cartpole(cartpole: Cartpole, cartpole_controller: CartpoleEnergyShaping
 if __name__ == "__main__":
     import os
     import gin
-    from common.configs.dynamics.cartpole_config import CartpoleDynamicsConfig
+    from configs.dynamics.cartpole_config import CartpoleDynamicsConfig
     path_to_dynamics_config_file = os.path.normpath(
         os.path.join(
             os.path.dirname(__file__),

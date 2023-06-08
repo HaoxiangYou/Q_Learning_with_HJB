@@ -9,10 +9,10 @@ from torch.utils.data import Dataset, DataLoader
 from typing import Sequence, List, Tuple, Union
 from collections import deque
 from functools import partial
-from common.controller.controller import Controller
-from common.dynamics.dynamics import Dynamics
-from common.configs.controller.vhjb_controller_config import VHJBControllerConfig
-from common.utils.utils import np_collate
+from controller.controller import Controller
+from dynamics.dynamics import Dynamics
+from configs.controller.vhjb_controller_config import VHJBControllerConfig
+from utils.data_utils import np_collate
 
 class ValueFunctionApproximator(nn.Module):
     features: Sequence[int]

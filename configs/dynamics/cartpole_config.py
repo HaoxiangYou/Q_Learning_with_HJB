@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 import gin
-from common.configs.dynamics.dynamics_config import DynamicsConfig
+from configs.dynamics.dynamics_config import DynamicsConfig
 
 @gin.configurable
 @dataclass

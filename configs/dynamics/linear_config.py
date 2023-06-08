@@ -2,7 +2,7 @@ from dataclasses import dataclass
 import gin
 import numpy as np
 from typing import Sequence
-from common.configs.dynamics.dynamics_config import DynamicsConfig
+from configs.dynamics.dynamics_config import DynamicsConfig
 
 @gin.configurable
 @dataclass

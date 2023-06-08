@@ -1,0 +1,30 @@
+# general
+VHJBControllerConfig.seed = 0
+
+# neural model hyperparameters
+VHJBControllerConfig.features = [100, 100]
+VHJBControllerConfig.normalization_mean = [0, 0, 0, 0]
+VHJBControllerConfig.normalization_std = [1.0, 3.14, 4.0, 4.0]
+
+# training hyperparameters
+VHJBControllerConfig.lr = 1e-3
+VHJBControllerConfig.warmup_epochs = 100
+VHJBControllerConfig.epochs = 100
+VHJBControllerConfig.batch_size = 256
+VHJBControllerConfig.regularization = 1e3
+
+# trajectories sample hyperparameters
+VHJBControllerConfig.warmup_trajectories = 100
+VHJBControllerConfig.num_of_trajectories_per_epoch = 10
+VHJBControllerConfig.maximum_step = 100
+VHJBControllerConfig.input_std = 0
+VHJBControllerConfig.std_decay_rate = 0.9
+VHJBControllerConfig.std_decay_step = 10
+VHJBControllerConfig.maximum_buffer_size = 1000000
+
+# task related hyperparameters
+VHJBControllerConfig.Q = [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]
+VHJBControllerConfig.R = [[1]]
+VHJBControllerConfig.xf = [0.0,3.1415926,0,0]
+VHJBControllerConfig.obs_min = [-4.8, -4, -1000, -1000]
+VHJBControllerConfig.obs_max = [4.8, 4, 1000, 1000]

@@ -4,23 +4,23 @@ import gin
 import os
 import jax
 from typing import Tuple
-from common.dynamics.linear import LinearDynamics
-from common.controller.lqr import LQR
-from common.controller.vhjb import VHJBController
-from common.configs.dynamics.linear_config import LinearDynamicsConfig
-from common.configs.controller.vhjb_controller_config import VHJBControllerConfig
+from dynamics.linear import LinearDynamics
+from controller.lqr import LQR
+from controller.vhjb import VHJBController
+from configs.dynamics.linear_config import LinearDynamicsConfig
+from configs.controller.vhjb_controller_config import VHJBControllerConfig
 
 def load_config():
     path_to_dynamics_config_file = os.path.normpath(
         os.path.join(
             os.path.dirname(__file__),
-            "../common/configs/dynamics/linear.gin",
+            "../configs/dynamics/linear.gin",
         )
     )
     path_to_controller_config_file = os.path.normpath(
         os.path.join(
             os.path.dirname(__file__),
-            "../common/configs/controller/linear_vhjb_controller.gin",
+            "../configs/controller/linear_vhjb_controller.gin",
         )
     )
     

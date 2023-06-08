@@ -1,6 +1,6 @@
 import numpy as np
 import jax.numpy as jnp
-from common.dynamics.dynamics import Dynamics
+from dynamics.dynamics import Dynamics
 from typing import Tuple
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation

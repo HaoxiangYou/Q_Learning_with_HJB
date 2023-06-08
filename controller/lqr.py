@@ -1,7 +1,7 @@
 import numpy as np
 import scipy as sp
-from common.controller.controller import Controller
-from common.dynamics.linear import LinearDynamics
+from controller.controller import Controller
+from dynamics.linear import LinearDynamics
 
 class LQR(Controller):
     def __init__(self, dynamics:LinearDynamics, Q:np.ndarray, R:np.ndarray) -> None:

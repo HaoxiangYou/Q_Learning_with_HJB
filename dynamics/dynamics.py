@@ -2,7 +2,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 from typing import Tuple, Union
-from common.configs.dynamics.dynamics_config import DynamicsConfig
+from configs.dynamics.dynamics_config import DynamicsConfig
 
 class Dynamics:
 

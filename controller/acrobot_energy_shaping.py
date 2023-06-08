@@ -1,7 +1,7 @@
 import numpy as np
 import scipy as sp
 import matplotlib.pyplot as plt
-from common.dynamics.acrobot import Acrobot, p, dt
+from dynamics.acrobot import Acrobot, p, dt
 
 def wrap(q):
     return (q + np.pi) %(2*np.pi) - np.pi
