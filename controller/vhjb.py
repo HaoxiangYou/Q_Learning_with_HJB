@@ -12,7 +12,7 @@ from functools import partial
 from controller.controller import Controller
 from dynamics.dynamics import Dynamics
 from configs.controller.vhjb_controller_config import VHJBControllerConfig
-from utils.data_utils import np_collate
+from utils.utils import np_collate
 
 class ValueFunctionApproximator(nn.Module):
     features: Sequence[int]
@@ -207,7 +207,10 @@ class VHJBController(Controller):
         batch_losses, updated_states = jax.vmap(
             loss, out_axes=(0, None), axis_name='batch'
         )(xs, dones)
-        return jnp.mean(batch_losses, axis=0), updated_states
+
+        # the mean is calculated based on the number of "dones" to prevent 
+        # losses coupling with the proportion of boundary and interior data   
+        return jnp.sum(batch_losses, axis=0) / jnp.sum(1-dones), updated_states
     
     def termination_loss(self, params, states, xs, dones, costs):
         def loss(x, done, cost):
@@ -216,7 +219,10 @@ class VHJBController(Controller):
         batch_losses, updated_states = jax.vmap(
             loss, out_axes=(0, None), axis_name='batch'
         )(xs, dones, costs)
-        return jnp.mean(batch_losses, axis=0), updated_states
+
+        # the mean is calculated based on the number of "dones" to prevent 
+        # losses coupling with the proportion of boundary and interior data   
+        return jnp.sum(batch_losses, axis=0) / jnp.sum(dones), updated_states
 
     @partial(jax.jit, static_argnums=(0,))
     def params_update(self, params, states, optimizer_state, xs, dones, costs, regularization):
