@@ -152,7 +152,6 @@ class VHJBController(Controller):
     def rollout_trajectory(self) -> List[Tuple[np.ndarray, np.ndarray, float, float]]:
         trajectory = []
         x = self.dynamics.get_initial_state()
-
         done = 0.0
         for i in range(self.maximum_timestep):
             if np.any(x > self.obs_max) or np.any(x < self.obs_min):
@@ -162,7 +161,8 @@ class VHJBController(Controller):
                 break
             else:
                 u = self.get_control_efforts(x)
-                trajectory.append((x, 0, done)) 
+                cost = self.running_cost(x, u) * self.dynamics.dt
+                trajectory.append((x, cost, done)) 
                 x = self.dynamics.simulate(x,u)
 
         if done == 0.0:
@@ -202,7 +202,7 @@ class VHJBController(Controller):
     
     def get_control_efforts(self, x):
         u, v_gradient, updated_states = self.get_control_efforts_with_additional_term(self.model_params, self.model_states, x)
-        return u
+        return np.asarray(u)
     
     def hjb_loss(self, params, states, xs, dones):
         def loss(x, done):
