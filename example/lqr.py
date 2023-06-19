@@ -9,6 +9,8 @@ from controller.lqr import LQR
 from controller.vhjb import VHJBController
 from configs.dynamics.linear_config import LinearDynamicsConfig
 from configs.controller.vhjb_controller_config import VHJBControllerConfig
+from utils.debug_plots import visualize_loss_landscope
+from functools import partial
 
 def load_config():
     path_to_dynamics_config_file = os.path.normpath(
@@ -142,10 +144,20 @@ def main():
     dynamics = LinearDynamics(dynamics_config)
     nn_policy = VHJBController(dynamics, controller_config)
     lqr_controller = LQR(dynamics, np.asarray(controller_config.Q), np.asarray(controller_config.R))
+
     nn_policy.train()
+    
     test_policy(nn_policy, dynamics, lqr_controller)
+    
     draw_Value_contour(nn_policy, lqr_controller, x_mean=np.array([0.0,0,0,0]), indices=(0,1), x_range=np.array([2.4, 0.3, 5, 5]))
+
+    xs, costs, dones = next(iter(nn_policy.dataloader))
+    visualize_loss_landscope(nn_policy.value_function_approximator, nn_policy.model_params, nn_policy.model_states, nn_policy.key,
+                            xs, partial(nn_policy.hjb_loss), dones=dones)
+    visualize_loss_landscope(nn_policy.value_function_approximator, nn_policy.model_params, nn_policy.model_states, nn_policy.key,
+                            xs, partial(nn_policy.termination_loss), dones=dones, costs=costs)
     plt.show()
+    
     import pdb; pdb.set_trace()
 
 if __name__ == "__main__":
