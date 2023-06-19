@@ -17,10 +17,16 @@ class VHJBControllerConfig:
     
     # training hyperparameters
     lr: float
-    warmup_epochs: int
     epochs: int
     batch_size: int
-    regularization: float
+    # regularization scheduler
+    regularization_init_value: float
+    regularization_peak_value: float
+    regularization_end_value: float
+    regularization_num_of_cycles: int
+    regularization_warmup_steps_per_cycle: int
+    regularization_total_steps_per_cycle: int
+    
 
     # dataset
     num_of_interior_data: int

@@ -101,8 +101,12 @@ class VHJBController(Controller):
         self.optimizer = optax.adam(learning_rate=config.lr)
         self.optimizer_states = self.optimizer.init(self.model_params)
         self.loss_fn = jnp.abs
-        self.regularization = config.regularization
-        self.warmup_epochs = config.warmup_epochs
+        regularization_scheduler_configs = [{"init_value": config.regularization_init_value, "end_value": config.regularization_end_value,
+                                             "peak_value": config.regularization_peak_value, "warmup_steps":config.regularization_warmup_steps_per_cycle, 
+                                             "decay_steps": config.regularization_total_steps_per_cycle,}] * config.regularization_num_of_cycles
+        self.regularization_scheduler = jax.jit(optax.sgdr_schedule(regularization_scheduler_configs))
+        self.update_counter = jnp.array(0)
+        self.regularization = self.regularization_scheduler(self.update_counter)
         self.epochs = config.epochs
         self.batch_size = config.batch_size
 
@@ -261,29 +265,15 @@ class VHJBController(Controller):
     
     def train(self):
 
-        for warmup_epoch in range(self.warmup_epochs):
-            total_losses = 0
-            hjb_losses = 0
-            termination_losses = 0
-            self.train_mode = True
-            for i, (xs, costs, dones) in enumerate(self.dataloader):
-                self.model_params, self.model_states, self.optimizer_states, total_loss, hjb_loss, termination_loss = self.params_update(
-                    self.model_params, self.model_states, self.optimizer_states, xs, dones, costs, self.regularization
-                )
-                total_losses += total_loss
-                hjb_losses += hjb_loss
-                termination_losses += termination_loss
-
-            if (warmup_epoch+1) % 10 == 0:
-                print(f"warmup_epoch: {warmup_epoch+1}, total loss:{total_losses/len(self.dataloader):.5f} hjb loss:{hjb_losses/len(self.dataloader):.5f}, termination loss:{termination_losses/len(self.dataloader):.5f}")
-        
         for epoch in range(self.epochs):
+            # sample additional trajectory
             trajectory_costs = 0
             self.train_mode = False
             for _ in range(self.num_of_trajectories_per_epoch):
                 trajectory = self.rollout_trajectory()
                 trajectory_costs += self.get_trajectory_cost(trajectory)
                 self.replay_buffer.xs.extend(trajectory)
+            # fit the value function
             total_losses = 0
             hjb_losses = 0
             termination_losses = 0
@@ -296,6 +286,11 @@ class VHJBController(Controller):
                 hjb_losses += hjb_loss
                 termination_losses += termination_loss
 
+                # update the regularization
+                self.update_counter = jax.jit(optax._src.numerics.safe_int32_increment)(self.update_counter)
+                self.regularization = self.regularization_scheduler(self.update_counter)
+
             if (epoch+1) % 10 == 0:
                 print(f"epoch:{epoch+1}, average trajectory cost:{trajectory_costs/self.num_of_trajectories_per_epoch:2f}")
                 print(f"epoch:{epoch+1}, total loss:{total_losses/len(self.dataloader):.5f} hjb loss:{hjb_losses/len(self.dataloader):.5f}, termination loss:{termination_losses/len(self.dataloader):.5f}")
+                print(f"current regulation:{self.regularization}")
