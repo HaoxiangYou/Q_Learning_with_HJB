@@ -47,7 +47,7 @@ def test_policy(nn_policy: VHJBController, dynamics: LinearDynamics, lqr_control
     xs_lqr[0] = x0
     xs_learned[0] = x0
     for i in range(1, t_span.shape[0]):
-        u_learned, v_gradient, updated_states = nn_policy.get_control_efforts(nn_policy.model_params, nn_policy.model_states, xs_learned[i-1])
+        u_learned = nn_policy.get_control_efforts(xs_learned[i-1])
         us_learned[i-1] = np.asarray(u_learned)
         us_lqr[i-1] = lqr_controller.get_control_efforts(xs_lqr[i-1])
         

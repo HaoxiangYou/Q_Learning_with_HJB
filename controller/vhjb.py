@@ -161,7 +161,7 @@ class VHJBController(Controller):
                 trajectory.append((x, cost, done)) 
                 break
             else:
-                u, v_gradient, updated_states = self.get_control_efforts(self.model_params, self.model_states, x)
+                u = self.get_control_efforts(x)
                 trajectory.append((x, 0, done)) 
                 x = self.dynamics.simulate(x,u)
 
@@ -182,7 +182,7 @@ class VHJBController(Controller):
         return jax.grad(self.value_function_approximator.apply, argnums=1, has_aux=True)({'params': params, **states}, x, train=self.train_mode, mutable=list(states.keys()))
 
     @partial(jax.jit, static_argnums=(0,))
-    def get_control_efforts(self, params, states, x) -> Tuple[jnp.ndarray, jnp.ndarray]:
+    def get_control_efforts_with_additional_term(self, params, states, x) -> Tuple[jnp.ndarray, jnp.ndarray]:
         """
         This function give the optimal input given, value function params, state.
         The jit decorator is used to accelerate the computing
@@ -200,10 +200,14 @@ class VHJBController(Controller):
         u = -self.R_inv @ f_2.T @ v_gradient / 2
         return u, v_gradient, updated_states
     
+    def get_control_efforts(self, x):
+        u, v_gradient, updated_states = self.get_control_efforts_with_additional_term(self.model_params, self.model_states, x)
+        return u
+    
     def hjb_loss(self, params, states, xs, dones):
         def loss(x, done):
             f_1, f_2 = self.dynamics.get_control_affine_matrix(x)
-            u, v_gradient, updated_states = self.get_control_efforts(params, states, x)
+            u, v_gradient, updated_states = self.get_control_efforts_with_additional_term(params, states, x)
             x_dot = f_1 + f_2 @ u
             v_dot = v_gradient.T @ x_dot
             loss = self.loss_fn(v_dot + self.running_cost(x, u)) * (1-done)
@@ -291,6 +295,7 @@ class VHJBController(Controller):
                 self.regularization = self.regularization_scheduler(self.update_counter)
 
             if (epoch+1) % 10 == 0:
-                print(f"epoch:{epoch+1}, average trajectory cost:{trajectory_costs/self.num_of_trajectories_per_epoch:2f}")
-                print(f"epoch:{epoch+1}, total loss:{total_losses/len(self.dataloader):.5f} hjb loss:{hjb_losses/len(self.dataloader):.5f}, termination loss:{termination_losses/len(self.dataloader):.5f}")
-                print(f"current regulation:{self.regularization}")
+                if self.num_of_trajectories_per_epoch > 0:
+                    print(f"epoch:{epoch+1}, average trajectory cost:{trajectory_costs/self.num_of_trajectories_per_epoch:2f}")
+                print(f"epoch:{epoch+1}, total loss:{total_losses/len(self.dataloader):.5f} regulation: {self.regularization:.1f},"\
+                      f"hjb loss:{hjb_losses/len(self.dataloader):.5f}, termination loss:{termination_losses/len(self.dataloader):.5f}")
