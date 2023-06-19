@@ -2,7 +2,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import matplotlib.pyplot as plt
-from typing import Union, Callable
+from typing import Union, Callable, Tuple
 from flax.core.frozen_dict import FrozenDict
 from controller.vhjb import ValueFunctionApproximator
 from utils.utils import keep_first_element
@@ -86,3 +86,57 @@ def visualize_loss_landscope(model:ValueFunctionApproximator, model_params:Froze
     CS = ax.contour(X, Y, losses)
     ax.clabel(CS, inline=True)
     ax.set_title(f"{loss_name} contour")
+
+def visualize_value_landscope(model:ValueFunctionApproximator, model_params:FrozenDict, model_states: FrozenDict, value_functon: Callable,
+                        x_mean: np.ndarray, indices: Tuple[int, int], x_range: np.ndarray, num_of_pts=50):
+    """
+    This function help to draw value function landscope
+
+    Args:
+        model: nn network object
+        model_params: params for learned nn networks
+        model_states: params for neural network states such as bn statistics
+        value function: a callable to calculate ground truth, e.g. function computed from value iteration or simply x.T @ P @ x for lqr
+        x_mean: the center point to visualize value function
+        indices: choose two entries of x for visualization
+        x_range: the ranges from x_mean for selected entries
+        num_of_pts: how many points to draw for the range    
+
+    Returns:
+    
+    """
+    
+
+    quick_apply = jax.jit(model.apply, static_argnames=["train"])
+    x_mean = x_mean.astype(np.float32)
+
+
+    x1 = np.linspace(-x_range[indices[0]], x_range[indices[0]], num_of_pts)
+    x2 = np.linspace(-x_range[indices[1]], x_range[indices[1]], num_of_pts)
+    X1, X2 = np.meshgrid(x1, x2)
+    v_learned = np.zeros_like(X1)
+    v_gt = np.zeros_like(X1)
+
+    for i in range(X1.shape[0]):
+        for j in range(X2.shape[1]):
+            x = np.copy(x_mean)
+            x[indices[0]] += X1[i,j]
+            x[indices[1]] += X2[i,j]
+            v_learned[i,j] = quick_apply({"params":model_params, **model_states}, x, train=False)
+            v_gt[i,j] = value_functon(x)
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.plot_surface(X1, X2, v_gt)
+    ax.set_xlabel(f'x{indices[0]}')
+    ax.set_ylabel(f'x{indices[1]}')
+    ax.set_zlabel('value')
+    plt.title("\"Ground truth\" value function landscope")
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.plot_surface(X1, X2, v_learned)
+    ax.set_xlabel(f'x{indices[0]}')
+    ax.set_ylabel(f'x{indices[1]}')
+    ax.set_zlabel('value')
+    plt.title("Learned value function landscope")

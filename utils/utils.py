@@ -1,5 +1,4 @@
 import numpy as np
-from functools import partial
 
 # For torch Dataloader to collate numpy
 def np_collate(batch):

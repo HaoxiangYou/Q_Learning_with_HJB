@@ -2,14 +2,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import gin
 import os
-import jax
-from typing import Tuple
 from dynamics.linear import LinearDynamics
 from controller.lqr import LQR
 from controller.vhjb import VHJBController
 from configs.dynamics.linear_config import LinearDynamicsConfig
 from configs.controller.vhjb_controller_config import VHJBControllerConfig
-from utils.debug_plots import visualize_loss_landscope
+from utils.debug_plots import visualize_loss_landscope, visualize_value_landscope
 from functools import partial
 
 def load_config():
@@ -85,60 +83,6 @@ def test_policy(nn_policy: VHJBController, dynamics: LinearDynamics, lqr_control
     plt.title("cumulated cost vs time")
     plt.legend()
 
-def draw_Value_contour(nn_policy: VHJBController, lqr_controller: LQR, x_mean: np.ndarray, indices: Tuple[int, int], x_range: np.ndarray, num_of_step=50):
-    quick_apply = jax.jit(nn_policy.value_function_approximator.apply, static_argnames=["train"])
-
-    x1 = np.linspace(-x_range[indices[0]], x_range[indices[0]], num_of_step)
-    x2 = np.linspace(-x_range[indices[1]], x_range[indices[1]], num_of_step)
-    X1, X2 = np.meshgrid(x1, x2)
-    v_learned = np.zeros_like(X1)
-    v_lqr = np.zeros_like(X1)
-
-    for i in range(X1.shape[0]):
-        for j in range(X2.shape[1]):
-            x = np.copy(x_mean)
-            x[indices[0]] += X1[i,j]
-            x[indices[1]] += X2[i,j]
-            v_learned[i,j] = quick_apply({"params":nn_policy.model_params, **nn_policy.model_states}, x, train=False)
-            v_lqr[i,j] = x.T @ lqr_controller.P @ x
-
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    ax.plot_surface(X1, X2, v_lqr)
-    ax.set_xlabel(f'x{indices[0]}')
-    ax.set_ylabel(f'x{indices[1]}')
-    ax.set_zlabel('value')
-    plt.title("LQR value function levelset")
-
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    ax.plot_surface(X1, X2, v_learned)
-    ax.set_xlabel(f'x{indices[0]}')
-    ax.set_ylabel(f'x{indices[1]}')
-    ax.set_zlabel('value')
-    plt.title("Learned value function levelset")
-
-def local_optimal_x(x: np.ndarray, nn_policy: VHJBController, max_iter=10, lr=1e-1, verbose=True, newton_method=True):
-    """
-    This function aim to find a local minimal value around x,
-    the local minimal can further served for debug purpose. 
-    """
-    nn_policy.train_mode = False
-
-    quick_hess_fn = jax.jit(jax.hessian(nn_policy.value_function_approximator.apply, argnums=1), static_argnames=["train"])
-    
-    for i in range(max_iter):
-        value = nn_policy.value_function_approximator.apply({"params":nn_policy.model_params, **nn_policy.model_states}, x, train=False)
-        u, v_gradient, updated_states = nn_policy.get_control_efforts(nn_policy.model_params, nn_policy.model_states, x)
-        hess = quick_hess_fn({"params":nn_policy.model_params, **nn_policy.model_states}, x, train=False)
-        if verbose:
-            print(f"iter:{i}, x: {x}, value:{value:.5f}, \n u:{u} v_gradient:{v_gradient} \n hess:{hess}")
-        if np.linalg.det(hess) > 0 and newton_method:
-            x -= lr * jax.numpy.linalg.inv(hess) @ v_gradient
-        else:
-            x -= lr * v_gradient
-    return x
-
 def main():
     dynamics_config, controller_config = load_config()    
     dynamics = LinearDynamics(dynamics_config)
@@ -149,7 +93,8 @@ def main():
     
     test_policy(nn_policy, dynamics, lqr_controller)
     
-    draw_Value_contour(nn_policy, lqr_controller, x_mean=np.array([0.0,0,0,0]), indices=(0,1), x_range=np.array([2.4, 0.3, 5, 5]))
+    visualize_value_landscope(nn_policy.value_function_approximator, nn_policy.model_params, nn_policy.model_states, lambda x: x.T @ lqr_controller.P @ x,
+                              x_mean=np.array([0, 0]), indices=(0,1), x_range=np.array([2.0, 2.0]))
 
     xs, costs, dones = next(iter(nn_policy.dataloader))
     visualize_loss_landscope(nn_policy.value_function_approximator, nn_policy.model_params, nn_policy.model_states, nn_policy.key,
