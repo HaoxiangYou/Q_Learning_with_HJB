@@ -93,7 +93,7 @@ def main():
     test_policy(nn_policy, dynamics, lqr_controller)
     
     visualize_value_landscope(nn_policy.value_function_approximator, nn_policy.model_params, nn_policy.model_states, lambda x: x.T @ lqr_controller.P @ x,
-                              x_mean=np.array([0, 0]), indices=(0,1), x_range=np.array([2.0, 2.0]))
+                              x_mean=controller_config.normalization_mean, indices=(0,1), x_range=controller_config.normalization_std)
 
     xs, costs, dones = next(iter(nn_policy.dataloader))
     visualize_loss_landscope(nn_policy.value_function_approximator, nn_policy.model_params, nn_policy.model_states, nn_policy.key,
