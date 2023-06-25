@@ -297,5 +297,5 @@ class VHJBController(Controller):
             if (epoch+1) % 10 == 0:
                 if self.num_of_trajectories_per_epoch > 0:
                     print(f"epoch:{epoch+1}, average trajectory cost:{trajectory_costs/self.num_of_trajectories_per_epoch:2f}")
-                print(f"epoch:{epoch+1}, total loss:{total_losses/len(self.dataloader):.5f} regulation: {self.regularization:.1f},"\
+                print(f"epoch:{epoch+1}, total loss:{total_losses/len(self.dataloader):.5f}, regulation: {self.regularization:.1f},"\
                       f"hjb loss:{hjb_losses/len(self.dataloader):.5f}, termination loss:{termination_losses/len(self.dataloader):.5f}")
