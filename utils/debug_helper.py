@@ -50,7 +50,7 @@ def local_optimal_x(x: np.ndarray, nn_policy: VHJBController, max_iter=10, lr=1e
     
     for i in range(max_iter):
         value = nn_policy.value_function_approximator.apply({"params":nn_policy.model_params, **nn_policy.model_states}, x, train=False)
-        u, v_gradient, updated_states = nn_policy.get_control_efforts(nn_policy.model_params, nn_policy.model_states, x)
+        u, v_gradient, updated_states = nn_policy.get_control_efforts_with_additional_term(nn_policy.model_params, nn_policy.model_states, x)
         hess = quick_hess_fn({"params":nn_policy.model_params, **nn_policy.model_states}, x, train=False)
         if verbose:
             print(f"iter:{i}, x: {x}, value:{value:.5f}, \n u:{u} v_gradient:{v_gradient} \n hess:{hess}")
