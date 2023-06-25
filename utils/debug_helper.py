@@ -2,7 +2,42 @@ import jax
 import numpy as np
 import scipy.linalg
 from itertools import permutations
+from flax.core.frozen_dict import FrozenDict
 from controller.vhjb import VHJBController
+from typing import Tuple
+
+def get_equivalent_matrix_multiplication_for_fully_connected_nn(x: np.ndarray, model_params: FrozenDict) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Given an input x and neural network params find a particular weight matrix and bias,
+    such that the neural network output = W.T x + b
+    
+    Currently we assume the neural network achitecture is 
+    only fully connected layer followed by relu, except the last layer.
+    """
+
+    weight = np.eye(x.shape[0])
+    bias = np.zeros_like(x)
+    feature = x
+
+    for i, (layer_name, layer_params) in enumerate(model_params.items()):
+        layer_weight = np.array(layer_params['kernel'])
+        
+        if 'bias' in layer_params:
+            layer_bias = np.array(layer_params['bias'])
+        else:
+            layer_bias = np.zeros(layer_weight.shape[1])
+        
+        feature = layer_weight.T @ feature + layer_bias
+        
+        if i != len(model_params) - 1:
+            negative_indices = np.where(feature < 0)[0]
+            layer_weight[:, negative_indices] = 0
+            layer_bias[negative_indices] = 0
+            feature[negative_indices] = 0
+        weight = weight @ layer_weight
+        bias = layer_weight.T @ bias + layer_bias
+
+    return weight, bias 
 
 def local_optimal_x(x: np.ndarray, nn_policy: VHJBController, max_iter=10, lr=1e-1, verbose=True, newton_method=True):
     """
