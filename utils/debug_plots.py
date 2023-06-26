@@ -88,7 +88,7 @@ def visualize_loss_landscope(model:ValueFunctionApproximator, model_params:Froze
     ax.set_title(f"{loss_name} contour")
 
 def visualize_value_landscope(model:ValueFunctionApproximator, model_params:FrozenDict, model_states: FrozenDict, value_functon: Callable,
-                        x_mean: np.ndarray, indices: Tuple[int, int], x_range: np.ndarray, num_of_pts=50):
+                        x_0: np.ndarray, x_direction: np.ndarray, y_direction: np.ndarray, x_range=np.linspace(-1, 1, 51), y_range=np.linspace(-1, 1, 51)):
     """
     This function help to draw value function landscope
 
@@ -97,10 +97,11 @@ def visualize_value_landscope(model:ValueFunctionApproximator, model_params:Froz
         model_params: params for learned nn networks
         model_states: params for neural network states such as bn statistics
         value function: a callable to calculate ground truth, e.g. function computed from value iteration or simply x.T @ P @ x for lqr
-        x_mean: the center point to visualize value function
-        indices: choose two entries of x for visualization
-        x_range: the ranges from x_mean for selected entries
-        num_of_pts: how many points to draw for the range    
+        x_0: the center point to visualize value function
+        x_direction: x axis direction
+        y_direction: y axis direction
+        x_range: the ranges for x direction
+        y_range: the range for y direction
 
     Returns:
     
@@ -108,35 +109,59 @@ def visualize_value_landscope(model:ValueFunctionApproximator, model_params:Froz
     
 
     quick_apply = jax.jit(model.apply, static_argnames=["train"])
-    x_mean = x_mean.astype(np.float32)
+    x_0 = x_0.astype(np.float32)
 
+    X, Y = np.meshgrid(x_range, y_range)
+    v_learned = np.zeros_like(X)
+    v_gt = np.zeros_like(X)
 
-    x1 = np.linspace(-x_range[indices[0]], x_range[indices[0]], num_of_pts)
-    x2 = np.linspace(-x_range[indices[1]], x_range[indices[1]], num_of_pts)
-    X1, X2 = np.meshgrid(x1, x2)
-    v_learned = np.zeros_like(X1)
-    v_gt = np.zeros_like(X1)
-
-    for i in range(X1.shape[0]):
-        for j in range(X2.shape[1]):
-            x = np.copy(x_mean)
-            x[indices[0]] += X1[i,j]
-            x[indices[1]] += X2[i,j]
+    for i in range(X.shape[0]):
+        for j in range(Y.shape[1]):
+            x = np.copy(x_0)
+            x += X[i,j] * x_direction
+            x += Y[i,j] * y_direction
             v_learned[i,j] = quick_apply({"params":model_params, **model_states}, x, train=False)
             v_gt[i,j] = value_functon(x)
 
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    ax.plot_surface(X1, X2, v_gt)
-    ax.set_xlabel(f'x{indices[0]}')
-    ax.set_ylabel(f'x{indices[1]}')
+    ax.plot_surface(X, Y, v_gt)
+    ax.set_xlabel(f"direction: {np.round(x_direction, 2)}")
+    ax.set_ylabel(f"direction: {np.round(y_direction, 2)}")
     ax.set_zlabel('value')
     plt.title("\"Ground truth\" value function landscope")
 
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    ax.plot_surface(X1, X2, v_learned)
-    ax.set_xlabel(f'x{indices[0]}')
-    ax.set_ylabel(f'x{indices[1]}')
+    ax.plot_surface(X, Y, v_learned)
+    ax.set_xlabel(f"direction: {np.round(x_direction, 2)}")
+    ax.set_ylabel(f"direction: {np.round(y_direction, 2)}")
     ax.set_zlabel('value')
     plt.title("Learned value function landscope")
+
+def visualize_value_landscope_for_lqr(model:ValueFunctionApproximator, model_params:FrozenDict, model_states: FrozenDict, P: np.ndarray, 
+                                      x_0=None, x_range=np.linspace(-1, 1, 51), y_range=np.linspace(-1, 1, 51)):
+    """
+    This function will draw value landscope for both learned function and lqr solutions.
+    
+    The directions are two eigenvectors with biggest eigenvalues of cost-to-go matrix P.
+    """
+
+    if x_0 is None:
+        x_0 = np.zeros(P.shape[0])
+
+    eigvals, eigvectors = np.linalg.eig(P)
+    sorted_indices = np.flip(np.argsort(eigvals))
+
+    x_direction = eigvectors[:, sorted_indices[0]]
+    x_eigval = eigvals[sorted_indices[0]]
+    y_direction = eigvectors[:, sorted_indices[1]]
+    y_eigval = eigvals[sorted_indices[1]]
+
+    # normalize the direction based on eigvalues
+    x_direction = x_direction / x_eigval **0.5
+    y_direction = y_direction / y_eigval **0.5
+
+    lqr_value_function = lambda x: x.T @ P @ x
+
+    visualize_value_landscope(model, model_params, model_states, lqr_value_function, x_0, x_direction, y_direction, x_range, y_range)
