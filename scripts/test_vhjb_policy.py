@@ -1,4 +1,3 @@
-import argparse
 import gin
 import os
 import numpy as np
@@ -8,7 +7,7 @@ from controller.lqr import LQR
 from controller.vhjb import VHJBController
 from configs.dynamics.linear_config import LinearDynamicsConfig
 from configs.controller.vhjb_controller_config import VHJBControllerConfig
-from utils.debug_plots import visualize_loss_landscope, visualize_value_landscope
+from utils.debug_plots import visualize_loss_landscope, visualize_value_landscope_for_lqr
 from functools import partial
 
 def load_config():
@@ -93,8 +92,7 @@ def main():
     
     test_policy(nn_policy, dynamics, lqr_controller)
     
-    visualize_value_landscope(nn_policy.value_function_approximator, nn_policy.model_params, nn_policy.model_states, lambda x: x.T @ lqr_controller.P @ x,
-                              x_mean=controller_config.normalization_mean, indices=(0,1), x_range=controller_config.normalization_std)
+    visualize_value_landscope_for_lqr(nn_policy.value_function_approximator, nn_policy.model_params, nn_policy.model_states, lqr_controller.P)
 
     xs, costs, dones = next(iter(nn_policy.dataloader))
     visualize_loss_landscope(nn_policy.value_function_approximator, nn_policy.model_params, nn_policy.model_states, nn_policy.key,
