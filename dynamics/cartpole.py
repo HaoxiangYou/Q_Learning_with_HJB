@@ -4,7 +4,7 @@ from typing import Union
 import matplotlib.pyplot as plt
 from matplotlib import animation
 from matplotlib.patches import Rectangle, Circle
-from configs.dynamics.cartpole_config import CartpoleDynamicsConfig
+from configs.dynamics.dynamics_config import CartpoleDynamicsConfig
 from dynamics.dynamics import Dynamics
 
 class Cartpole(Dynamics):

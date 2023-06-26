@@ -1,7 +1,7 @@
 import numpy as np
 import jax.numpy as jnp
 from dynamics.dynamics import Dynamics
-from configs.dynamics.linear_config import LinearDynamicsConfig
+from configs.dynamics.dynamics_config import LinearDynamicsConfig
 from typing import Tuple, Union
 
 class LinearDynamics(Dynamics):
