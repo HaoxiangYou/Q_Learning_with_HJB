@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import numpy as np
+import gin
 from typing import Sequence 
 
 @dataclass
@@ -18,3 +19,25 @@ class DynamicsConfig:
         self.umax = np.array(self.umax, dtype=np.float32)
         self.state_dim = self.x0_mean.shape[0]
         self.control_dim = self.umin.shape[0]
+
+@gin.configurable
+@dataclass
+class LinearDynamicsConfig(DynamicsConfig):
+    A: Sequence[Sequence[float]]
+    B: Sequence[Sequence[float]]
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.A = np.array(self.A, dtype=np.float32)
+        self.B = np.array(self.B, dtype=np.float32)
+
+@gin.configurable
+@dataclass
+class CartpoleDynamicsConfig(DynamicsConfig):
+    mc: float
+    mp: float
+    g: float
+    l: float
+
+    def __post_init__(self):
+        super().__post_init__()
