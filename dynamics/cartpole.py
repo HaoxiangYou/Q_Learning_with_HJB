@@ -95,7 +95,7 @@ class Cartpole(Dynamics):
     
 if __name__ == "__main__":
 
-    config = CartpoleDynamicsConfig(mc=1, mp=1, l=1, g=1, dt=0.05, seed=0,
+    config = CartpoleDynamicsConfig(mc=1, mp=1, l=1, g=9.81, dt=0.05, seed=0,
                                     x0_mean=[0, 3.14, 0, 0],
                                     x0_std=[2.4, 0.05, 0, 0],
                                     umin=[-5],
