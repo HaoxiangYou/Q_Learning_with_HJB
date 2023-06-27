@@ -88,7 +88,8 @@ def visualize_loss_landscope(model:ValueFunctionApproximator, model_params:Froze
     ax.set_title(f"{loss_name} contour")
 
 def visualize_value_landscope(model:ValueFunctionApproximator, model_params:FrozenDict, model_states: FrozenDict, value_functon: Callable,
-                        x_0: np.ndarray, x_direction: np.ndarray, y_direction: np.ndarray, x_range=np.linspace(-1, 1, 51), y_range=np.linspace(-1, 1, 51)):
+                        x_0: np.ndarray, x_direction: np.ndarray, y_direction: np.ndarray, states_wrap_function: Callable,
+                        x_range=np.linspace(-1, 1, 51), y_range=np.linspace(-1, 1, 51)):
     """
     This function help to draw value function landscope
 
@@ -98,6 +99,7 @@ def visualize_value_landscope(model:ValueFunctionApproximator, model_params:Froz
         model_states: params for neural network states such as bn statistics
         value function: a callable to calculate ground truth, e.g. function computed from value iteration or simply x.T @ P @ x for lqr
         x_0: the center point to visualize value function
+        states_wrap_function: a function to convert states back into domain
         x_direction: x axis direction
         y_direction: y axis direction
         x_range: the ranges for x direction
@@ -120,6 +122,7 @@ def visualize_value_landscope(model:ValueFunctionApproximator, model_params:Froz
             x = np.copy(x_0)
             x += X[i,j] * x_direction
             x += Y[i,j] * y_direction
+            x = states_wrap_function(x)
             v_learned[i,j] = quick_apply({"params":model_params, **model_states}, x, train=False)
             v_gt[i,j] = value_functon(x)
 
@@ -140,15 +143,15 @@ def visualize_value_landscope(model:ValueFunctionApproximator, model_params:Froz
     plt.title("Learned value function landscope")
 
 def visualize_value_landscope_for_lqr(model:ValueFunctionApproximator, model_params:FrozenDict, model_states: FrozenDict, P: np.ndarray, 
-                                      x_0=None, x_range=np.linspace(-1, 1, 51), y_range=np.linspace(-1, 1, 51)):
+                                      xf: np.ndarray, states_wrap_function: Callable, x_range=np.linspace(-1, 1, 51), y_range=np.linspace(-1, 1, 51)):
     """
     This function will draw value landscope for both learned function and lqr solutions.
     
     The directions are two eigenvectors with biggest eigenvalues of cost-to-go matrix P.
     """
 
-    if x_0 is None:
-        x_0 = np.zeros(P.shape[0])
+    if xf is None:
+        xf = np.zeros(P.shape[0])
 
     eigvals, eigvectors = np.linalg.eig(P)
     sorted_indices = np.flip(np.argsort(eigvals))
@@ -162,6 +165,8 @@ def visualize_value_landscope_for_lqr(model:ValueFunctionApproximator, model_par
     x_direction = x_direction / x_eigval **0.5
     y_direction = y_direction / y_eigval **0.5
 
-    lqr_value_function = lambda x: x.T @ P @ x
+    lqr_value_function = lambda x: states_wrap_function(x - xf).T @ P @ states_wrap_function(x - xf)
 
-    visualize_value_landscope(model, model_params, model_states, lqr_value_function, x_0, x_direction, y_direction, x_range, y_range)
+    visualize_value_landscope(model, model_params, model_states, lqr_value_function, 
+                              xf, x_direction, y_direction, states_wrap_function,
+                              x_range, y_range)

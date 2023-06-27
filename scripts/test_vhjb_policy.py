@@ -72,7 +72,7 @@ def load_cartpole(dynamics_config, vhjb_controller_config):
         path_to_vhjb_controller_config_file = os.path.normpath(
         os.path.join(
             os.path.dirname(__file__),
-            "../configs/controller/linear_vhjb_controller.gin",
+            "../configs/controller/cartpole_vhjb_controller.gin",
             )
         )
     else:
@@ -192,7 +192,8 @@ def main():
     elif isinstance(model_based_controller, CartpoleEnergyShapingController):
         _, P = model_based_controller.get_lqr_term()
 
-    visualize_value_landscope_for_lqr(nn_policy.value_function_approximator, nn_policy.model_params, nn_policy.model_states, P)
+    visualize_value_landscope_for_lqr(nn_policy.value_function_approximator, nn_policy.model_params, nn_policy.model_states, 
+                                      P, nn_policy.xf, dynamics.states_wrap)
 
     xs, costs, dones = next(iter(nn_policy.dataloader))
     visualize_loss_landscope(nn_policy.value_function_approximator, nn_policy.model_params, nn_policy.model_states, nn_policy.key,
