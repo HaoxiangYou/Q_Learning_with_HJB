@@ -2,7 +2,7 @@
 VHJBControllerConfig.seed = 0
 
 # neural model hyperparameters
-VHJBControllerConfig.features = [128, 128]
+VHJBControllerConfig.features = [128]
 VHJBControllerConfig.normalization_mean = [0, 0, 0, 0]
 VHJBControllerConfig.normalization_std = [1.0, 0.2, 4.0, 4.0]
 VHJBControllerConfig.using_batch_norm = False
@@ -19,7 +19,6 @@ VHJBControllerConfig.regularization_num_of_cycles = 10
 VHJBControllerConfig.regularization_warmup_steps_per_cycle = 1000
 VHJBControllerConfig.regularization_total_steps_per_cycle = 2000
 
-
 # dataset
 VHJBControllerConfig.num_of_interior_data = 100000
 VHJBControllerConfig.num_of_boundary_data = 10000
@@ -30,7 +29,7 @@ VHJBControllerConfig.boundary_states_std = [1.0, 0.2, 4.0, 4.0]
 VHJBControllerConfig.boundary_cost_clip = 10000
 
 # trajectories sample hyperparameters
-VHJBControllerConfig.num_of_trajectories_per_epoch = 1
+VHJBControllerConfig.num_of_trajectories_per_epoch = 10
 VHJBControllerConfig.maximum_step = 100
 VHJBControllerConfig.maximum_buffer_size = 1000000
 

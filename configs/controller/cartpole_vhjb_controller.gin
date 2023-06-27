@@ -2,29 +2,40 @@
 VHJBControllerConfig.seed = 0
 
 # neural model hyperparameters
-VHJBControllerConfig.features = [100, 100]
+VHJBControllerConfig.features = [128, 128]
 VHJBControllerConfig.normalization_mean = [0, 0, 0, 0]
-VHJBControllerConfig.normalization_std = [1.0, 3.14, 4.0, 4.0]
+VHJBControllerConfig.normalization_std = [1.0, 3.1415926, 4.0, 4.0]
+VHJBControllerConfig.using_batch_norm = False
 
 # training hyperparameters
 VHJBControllerConfig.lr = 1e-3
-VHJBControllerConfig.warmup_epochs = 100
-VHJBControllerConfig.epochs = 100
+VHJBControllerConfig.epochs = 400
 VHJBControllerConfig.batch_size = 256
-VHJBControllerConfig.regularization = 1e3
+# regularization scheduler
+VHJBControllerConfig.regularization_init_value = 0
+VHJBControllerConfig.regularization_peak_value = 1e2
+VHJBControllerConfig.regularization_end_value = 0
+VHJBControllerConfig.regularization_num_of_cycles = 10
+VHJBControllerConfig.regularization_warmup_steps_per_cycle = 1000
+VHJBControllerConfig.regularization_total_steps_per_cycle = 2000
+
+# dataset
+VHJBControllerConfig.num_of_interior_data = 10000
+VHJBControllerConfig.num_of_boundary_data = 1000
+VHJBControllerConfig.interior_states_mean = [0,3.1415926,0,0]
+VHJBControllerConfig.interior_states_std = [1.0, 0.2, 4.0, 4.0]
+VHJBControllerConfig.boundary_states_mean = [0,3.1415926,0,0]
+VHJBControllerConfig.boundary_states_std = [1.0, 0.2, 4.0, 4.0]
+VHJBControllerConfig.boundary_cost_clip = 10000
 
 # trajectories sample hyperparameters
-VHJBControllerConfig.warmup_trajectories = 100
-VHJBControllerConfig.num_of_trajectories_per_epoch = 10
+VHJBControllerConfig.num_of_trajectories_per_epoch = 1
 VHJBControllerConfig.maximum_step = 100
-VHJBControllerConfig.input_std = 0
-VHJBControllerConfig.std_decay_rate = 0.9
-VHJBControllerConfig.std_decay_step = 10
 VHJBControllerConfig.maximum_buffer_size = 1000000
 
 # task related hyperparameters
 VHJBControllerConfig.Q = [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]
 VHJBControllerConfig.R = [[1]]
-VHJBControllerConfig.xf = [0.0,3.1415926,0,0]
-VHJBControllerConfig.obs_min = [-4.8, -4, -1000, -1000]
-VHJBControllerConfig.obs_max = [4.8, 4, 1000, 1000]
+VHJBControllerConfig.xf = [0,3.1415926,0,0]
+VHJBControllerConfig.obs_min = [-4.8, -0.418, -1000, -1000]
+VHJBControllerConfig.obs_max = [4.8, 0.418, 1000, 1000]
