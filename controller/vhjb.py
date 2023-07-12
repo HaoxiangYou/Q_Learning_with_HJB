@@ -6,7 +6,7 @@ import numpy as np
 import scipy.linalg
 import torch
 from torch.utils.data import Dataset, DataLoader
-from typing import Sequence, List, Tuple, Union
+from typing import Sequence, List, Tuple, Union, Callable
 from collections import deque
 from functools import partial
 from controller.controller import Controller
@@ -18,6 +18,8 @@ class ValueFunctionApproximator(nn.Module):
     features: Sequence[int]
     mean: jnp.ndarray
     std: jnp.ndarray
+    xf: jnp.ndarray
+    states_wrap_function: Callable
     # a flag to indicate whether to use batch norm layer
     # the flag should remain unchange after initialization
     # TODO write as a property
@@ -31,6 +33,9 @@ class ValueFunctionApproximator(nn.Module):
             axis_name="batch"
         )
 
+        # represent the states to error coordinates
+        x = self.states_wrap_function(x - self.xf)
+        # normalize the error states
         x = (x - self.mean) / self.std
 
         for i, feature in enumerate(self.features):
@@ -95,6 +100,8 @@ class VHJBController(Controller):
             features=config.features, 
             mean=config.normalization_mean, 
             std=config.normalization_std,
+            xf=self.xf,
+            states_wrap_function=dynamics.states_wrap,
             using_batch_norm=config.using_batch_norm)
         self.key, key_to_use = jax.random.split(self.key)
         self.train_mode = False
@@ -226,7 +233,7 @@ class VHJBController(Controller):
     def termination_loss(self, params, states, xs, dones, costs):
         def loss(x, done, cost):
             v, updated_states = self.value_function_approximator.apply({'params': params, **states}, x, train=self.train_mode, mutable=list(states.keys()))
-            return self.loss_fn(v/(cost+self.epsilon) - 1) * done, updated_states
+            return self.loss_fn(v / (cost + self.epsilon) - 1) * done, updated_states
         batch_losses, updated_states = jax.vmap(
             loss, out_axes=(0, None), axis_name='batch'
         )(xs, dones, costs)
