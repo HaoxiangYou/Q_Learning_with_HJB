@@ -70,6 +70,9 @@ class VHJBController(Controller):
         torch.random.manual_seed(config.seed)
         np.random.seed(config.seed)
 
+        # small additive value to prevent divide by zero
+        self.epsilon = config.epsilon
+
         # Load system
         self.dynamics = dynamics
         self.state_dim, self.control_dim = self.dynamics.get_dimension()
@@ -210,7 +213,7 @@ class VHJBController(Controller):
             u, v_gradient, updated_states = self.get_control_efforts_with_additional_term(params, states, x)
             x_dot = f_1 + f_2 @ u
             v_dot = v_gradient.T @ x_dot
-            loss = self.loss_fn(v_dot + self.running_cost(x, u)) * (1-done)
+            loss = self.loss_fn(v_dot / (self.running_cost(x, u) + self.epsilon) + 1) * (1-done)
             return loss, updated_states
         batch_losses, updated_states = jax.vmap(
             loss, out_axes=(0, None), axis_name='batch'
@@ -223,7 +226,7 @@ class VHJBController(Controller):
     def termination_loss(self, params, states, xs, dones, costs):
         def loss(x, done, cost):
             v, updated_states = self.value_function_approximator.apply({'params': params, **states}, x, train=self.train_mode, mutable=list(states.keys()))
-            return self.loss_fn(v-cost) * done, updated_states
+            return self.loss_fn(v/(cost+self.epsilon) - 1) * done, updated_states
         batch_losses, updated_states = jax.vmap(
             loss, out_axes=(0, None), axis_name='batch'
         )(xs, dones, costs)

@@ -1,5 +1,6 @@
 # general
 VHJBControllerConfig.seed = 0
+VHJBControllerConfig.epsilon = 1e-10
 
 # neural model hyperparameters
 VHJBControllerConfig.features = [128, 128]

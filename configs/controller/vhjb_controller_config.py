@@ -8,6 +8,8 @@ from typing import Sequence
 class VHJBControllerConfig:
     # general
     seed: int
+    # small additive value to prevent divide by zero
+    epsilon: float
 
     # neural model hyperparameters
     features: Sequence[int]
@@ -27,7 +29,6 @@ class VHJBControllerConfig:
     regularization_warmup_steps_per_cycle: int
     regularization_total_steps_per_cycle: int
     
-
     # dataset
     num_of_interior_data: int
     num_of_boundary_data: int
