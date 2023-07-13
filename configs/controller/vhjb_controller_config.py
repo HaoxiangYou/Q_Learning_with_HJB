@@ -48,6 +48,7 @@ class VHJBControllerConfig:
     Q: Sequence[Sequence[float]]
     R: Sequence[Sequence[float]]
     xf: Sequence[float]
+    # based on error coordinates
     obs_min: Sequence[float]
     obs_max: Sequence[float]
 

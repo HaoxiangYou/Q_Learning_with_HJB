@@ -172,7 +172,8 @@ class VHJBController(Controller):
         x = self.dynamics.get_initial_state()
         done = 0.0
         for i in range(self.maximum_timestep):
-            if np.any(x > self.obs_max) or np.any(x < self.obs_min):
+            if np.any(self.dynamics.states_wrap(x - self.xf) > self.obs_max) or \
+                np.any(self.dynamics.states_wrap(x - self.xf)  < self.obs_min):
                 done = 1.0
                 cost = self.termination_cost(x)
                 trajectory.append((x, cost, done)) 
