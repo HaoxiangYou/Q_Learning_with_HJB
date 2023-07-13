@@ -195,11 +195,11 @@ def main():
     visualize_value_landscope_for_lqr(nn_policy.value_function_approximator, nn_policy.model_params, nn_policy.model_states, 
                                       P, nn_policy.xf, dynamics.states_wrap)
 
-    xs, costs, dones = next(iter(nn_policy.dataloader))
-    visualize_loss_landscope(nn_policy.value_function_approximator, nn_policy.model_params, nn_policy.model_states, nn_policy.key,
-                            xs, partial(nn_policy.hjb_loss), dones=dones)
-    visualize_loss_landscope(nn_policy.value_function_approximator, nn_policy.model_params, nn_policy.model_states, nn_policy.key,
-                            xs, partial(nn_policy.termination_loss), dones=dones, costs=costs)
+    # xs, costs, dones = next(iter(nn_policy.dataloader))
+    # visualize_loss_landscope(nn_policy.value_function_approximator, nn_policy.model_params, nn_policy.model_states, nn_policy.key,
+    #                         xs, partial(nn_policy.hjb_loss), dones=dones)
+    # visualize_loss_landscope(nn_policy.value_function_approximator, nn_policy.model_params, nn_policy.model_states, nn_policy.key,
+    #                         xs, partial(nn_policy.termination_loss), dones=dones, costs=costs)
     plt.show()
     
     import pdb; pdb.set_trace()

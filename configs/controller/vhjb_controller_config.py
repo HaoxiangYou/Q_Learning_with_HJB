@@ -15,6 +15,7 @@ class VHJBControllerConfig:
     features: Sequence[int]
     normalization_mean: Sequence[float]
     normalization_std: Sequence[float]
+    epsilon_scalar: float
     using_batch_norm: bool
     
     # training hyperparameters

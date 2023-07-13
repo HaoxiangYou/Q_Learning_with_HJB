@@ -20,6 +20,7 @@ class ValueFunctionApproximator(nn.Module):
     std: jnp.ndarray
     xf: jnp.ndarray
     states_wrap_function: Callable
+    epsilon_scalar: float
     # a flag to indicate whether to use batch norm layer
     # the flag should remain unchange after initialization
     # TODO write as a property
@@ -30,16 +31,22 @@ class ValueFunctionApproximator(nn.Module):
         norm = partial(
             nn.BatchNorm,
             use_running_average=not train,
+            use_bias = False,
             axis_name="batch"
         )
 
         # represent the states to error coordinates
         x = self.states_wrap_function(x - self.xf)
+        # a small scalar times square of 2-norm,
+        # this will guarantee, the value function is positive for all states except origin
+        eps = self.epsilon_scalar * jnp.einsum('...i,...i->...', x, x)
+        
         # normalize the error states
         x = (x - self.mean) / self.std
 
         for i, feature in enumerate(self.features):
-            x = nn.Dense(feature)(x)
+            # not bias, guarantee the value function is 0 at origin
+            x = nn.Dense(feature, use_bias=False)(x)
 
             # apply nonlinearity if not the last feature
             if not i == len(self.features) - 1:
@@ -48,7 +55,7 @@ class ValueFunctionApproximator(nn.Module):
                 x = nn.relu(x)
         # dot product for last axis
         # assume the value function can be approximate by some quadratic form
-        x = jnp.einsum('...i,...i->...', x, x)
+        x = jnp.einsum('...i,...i->...', x, x) + eps
 
         return x
 
@@ -101,6 +108,7 @@ class VHJBController(Controller):
             mean=config.normalization_mean, 
             std=config.normalization_std,
             xf=self.xf,
+            epsilon_scalar=config.epsilon_scalar,
             states_wrap_function=dynamics.states_wrap,
             using_batch_norm=config.using_batch_norm)
         self.key, key_to_use = jax.random.split(self.key)
