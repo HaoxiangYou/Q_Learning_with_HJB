@@ -134,8 +134,8 @@ def test_policy(nn_policy: VHJBController, dynamics: Dynamics, model_based_contr
         xs_learned[i] = dynamics.simulate(xs_learned[i-1], us_learned[i-1])
         xs_model_based[i] = dynamics.simulate(xs_model_based[i-1], us_model_based[i-1])
 
-        cost_lqr[i-1] = nn_policy.running_cost(xs_model_based[i-1], us_model_based[i-1])
-        cost_learned[i-1] = nn_policy.running_cost(xs_learned[i-1], us_learned[i-1])
+        cost_lqr[i-1] = nn_policy.running_cost(xs_model_based[i-1], us_model_based[i-1]) * dynamics.dt
+        cost_learned[i-1] = nn_policy.running_cost(xs_learned[i-1], us_learned[i-1]) * dynamics.dt
 
 
     anim, fig = None, None
@@ -186,7 +186,7 @@ def main():
     nn_policy.train()
     
     anim, fig = test_policy(nn_policy, dynamics, model_based_controller)
-    
+        
     if isinstance(model_based_controller, LQR):
         P = model_based_controller.P
     elif isinstance(model_based_controller, CartpoleEnergyShapingController):
