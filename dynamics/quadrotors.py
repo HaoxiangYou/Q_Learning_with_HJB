@@ -98,9 +98,6 @@ class Quadrotors2D(Dynamics):
 
         return anim, fig
 
-class Quadrotors2DErrorCoordinates(Dynamics):
-    pass
-
 if __name__ == "__main__":
     import os
     import gin
