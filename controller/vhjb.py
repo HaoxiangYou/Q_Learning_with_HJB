@@ -237,7 +237,7 @@ class VHJBController(Controller):
 
         # the mean is calculated based on the number of "dones" to prevent 
         # losses coupling with the proportion of boundary and interior data   
-        return jnp.sum(batch_losses, axis=0) / (jnp.sum(1-dones) + 1e-10), updated_states
+        return jnp.sum(batch_losses, axis=0) / (jnp.sum(1-dones) + self.epsilon), updated_states
     
     def termination_loss(self, params, states, xs, dones, costs):
         def loss(x, done, cost):
@@ -249,7 +249,7 @@ class VHJBController(Controller):
 
         # the mean is calculated based on the number of "dones" to prevent 
         # losses coupling with the proportion of boundary and interior data   
-        return jnp.sum(batch_losses, axis=0) / (jnp.sum(dones) + 1e-10), updated_states
+        return jnp.sum(batch_losses, axis=0) / (jnp.sum(dones) + self.epsilon), updated_states
 
     @partial(jax.jit, static_argnums=(0,))
     def params_update(self, params, states, optimizer_state, xs, dones, costs, regularization):
