@@ -159,7 +159,7 @@ def test_cartpole(cartpole: Cartpole, cartpole_controller: CartpoleEnergyShaping
 if __name__ == "__main__":
     import os
     import gin
-    from configs.dynamics.cartpole_config import CartpoleDynamicsConfig
+    from configs.dynamics.dynamics_config import CartpoleDynamicsConfig
     path_to_dynamics_config_file = os.path.normpath(
         os.path.join(
             os.path.dirname(__file__),
