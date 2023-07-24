@@ -54,10 +54,10 @@ class Dynamics:
         """
         wrap the states into valid range
 
-        params:
-            x: state vector in (states_dim, )
+        args:
+            x: state vector in (states_dim, ) or (batch_size, state_dim)
         returns:
-            wrap states in (states_dim, )
+            wrap states in (states_dim, ) or (batch_size, state_dim)
         """
         raise NotImplementedError
     
@@ -65,9 +65,9 @@ class Dynamics:
         -> Union[Tuple[jnp.ndarray, jnp.ndarray], Tuple[np.ndarray, np.ndarray]]:
         """
             x_dot = f_1(x) + f_2(x) u
-            params:
+            args:
                 x: state vector in (states_dim, )
-            return:
+            returns:
                 f_1(x): 
                     in (state_dim, )
                 f_2(x):
