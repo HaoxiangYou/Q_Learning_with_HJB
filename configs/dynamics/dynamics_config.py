@@ -41,3 +41,11 @@ class CartpoleDynamicsConfig(DynamicsConfig):
 
     def __post_init__(self):
         super().__post_init__()
+
+@gin.configurable
+@dataclass
+class Quadrotors2DConfig(DynamicsConfig):
+    g: float
+    m: float
+    r: float
+    I: float

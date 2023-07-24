@@ -1,0 +1,10 @@
+Quadrotors2DConfig.seed = 0
+Quadrotors2DConfig.m = 1
+Quadrotors2DConfig.r = 0.25
+Quadrotors2DConfig.g = 9.81
+Quadrotors2DConfig.I = 0.0625
+Quadrotors2DConfig.dt = 0.05
+Quadrotors2DConfig.x0_mean = [0, 0, 0, 0, 0, 0]
+Quadrotors2DConfig.x0_std = [1, 1, 1, 1, 1, 1]
+Quadrotors2DConfig.umin = [-5, -5]
+Quadrotors2DConfig.umax = [5, 5]
