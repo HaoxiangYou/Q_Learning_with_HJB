@@ -4,10 +4,10 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from functools import partial
-from dynamics.dynamics import Dynamics
+from dynamics.dynamics_basic import Dynamics
 from dynamics.linear import LinearDynamics
 from dynamics.cartpole import Cartpole
-from controller.controller import Controller
+from controller.controller_basic import Controller
 from controller.vhjb import VHJBController
 from controller.cartpole_energy_shaping import CartpoleEnergyShapingController
 from controller.lqr import LQR

@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from matplotlib import animation
 from matplotlib.patches import Rectangle, Circle
 from configs.dynamics.dynamics_config import CartpoleDynamicsConfig
-from dynamics.dynamics import Dynamics
+from dynamics.dynamics_basic import Dynamics
 
 class Cartpole(Dynamics):
 

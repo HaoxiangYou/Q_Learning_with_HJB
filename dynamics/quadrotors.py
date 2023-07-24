@@ -2,7 +2,7 @@ import jax.numpy as jnp
 import numpy as np
 from typing import Tuple, Union
 from configs.dynamics.dynamics_config import Quadrotors2DConfig
-from dynamics.dynamics import Dynamics
+from dynamics.dynamics_basic import Dynamics
 import matplotlib.pyplot as plt
 from matplotlib import animation
 

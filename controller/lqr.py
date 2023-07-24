@@ -1,6 +1,6 @@
 import numpy as np
 import scipy as sp
-from controller.controller import Controller
+from controller.controller_basic import Controller
 from dynamics.linear import LinearDynamics
 
 class LQR(Controller):

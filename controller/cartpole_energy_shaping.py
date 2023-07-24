@@ -2,7 +2,7 @@ import numpy as np
 import scipy as sp
 import matplotlib.pyplot as plt
 from dynamics.cartpole import Cartpole
-from controller.controller import Controller
+from controller.controller_basic import Controller
 
 class CartpoleEnergyShapingController(Controller):
     def __init__(self, cartpole:Cartpole, Q=np.eye(4), R=np.eye(1), K=np.array([4, 4, 10]), eps_energy=1, eps_state=1) -> None:

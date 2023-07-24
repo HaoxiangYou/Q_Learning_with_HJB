@@ -1,6 +1,6 @@
 import numpy as np
 import jax.numpy as jnp
-from dynamics.dynamics import Dynamics
+from dynamics.dynamics_basic import Dynamics
 from configs.dynamics.dynamics_config import LinearDynamicsConfig
 from typing import Tuple, Union
 

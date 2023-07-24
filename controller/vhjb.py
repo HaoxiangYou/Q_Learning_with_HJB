@@ -9,8 +9,8 @@ from torch.utils.data import Dataset, DataLoader
 from typing import Sequence, List, Tuple, Union, Callable
 from collections import deque
 from functools import partial
-from controller.controller import Controller
-from dynamics.dynamics import Dynamics
+from controller.controller_basic import Controller
+from dynamics.dynamics_basic import Dynamics
 from configs.controller.vhjb_controller_config import VHJBControllerConfig
 from utils.utils import np_collate
 
