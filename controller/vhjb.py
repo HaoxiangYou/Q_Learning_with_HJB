@@ -216,7 +216,7 @@ class VHJBController(Controller):
         """
         v_gradient, updated_states = self.get_v_gradient(params, states, x)
         f_1, f_2 = self.dynamics.get_control_affine_matrix(x)
-        u = -self.R_inv @ f_2.T @ v_gradient / 2
+        u = jnp.clip(-self.R_inv @ f_2.T @ v_gradient / 2, self.umin, self.umax)
         return u, v_gradient, updated_states
     
     def get_control_efforts(self, x):

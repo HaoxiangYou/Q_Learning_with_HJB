@@ -31,8 +31,8 @@ VHJBControllerConfig.boundary_states_std = [1.0, 0.2, 4.0, 4.0]
 VHJBControllerConfig.boundary_cost_clip = 10000
 
 # trajectories sample hyperparameters
-VHJBControllerConfig.num_of_trajectories_per_epoch = 10
-VHJBControllerConfig.maximum_step = 100
+VHJBControllerConfig.num_of_trajectories_per_epoch = 20
+VHJBControllerConfig.maximum_step = 200
 VHJBControllerConfig.maximum_buffer_size = 1000000
 
 # task related hyperparameters
