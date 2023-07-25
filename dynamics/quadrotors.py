@@ -81,9 +81,6 @@ class Quadrotors2D(Dynamics):
 
         def draw_frame(i):            
             ax.clear()
-            ax.axis('equal')
-            ax.set_xlim(x_min, x_max)
-            ax.set_ylim(y_min, y_max)
             
             ax.plot(xs[:i+1, 0], xs[:i+1, 1], label="actual trajectory", color="g")
 
@@ -92,6 +89,10 @@ class Quadrotors2D(Dynamics):
                     color="b", label="quadrotors", linewidth=3)
             
             ax.legend()
+
+            ax.axis('scaled')
+            ax.set_xlim(x_min, x_max)
+            ax.set_ylim(y_min, y_max)
             ax.set_title("{:.1f}s".format(ts[i]))
 
         anim = animation.FuncAnimation(fig, draw_frame, frames=ts.shape[0], repeat=False, interval=self.dt*1000)
