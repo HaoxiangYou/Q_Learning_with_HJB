@@ -48,6 +48,7 @@ class VHJBControllerConfig:
     Q: Sequence[Sequence[float]]
     R: Sequence[Sequence[float]]
     xf: Sequence[float]
+    uf: Sequence[float]
     # based on error coordinates
     obs_min: Sequence[float]
     obs_max: Sequence[float]
@@ -58,6 +59,7 @@ class VHJBControllerConfig:
         self.Q = np.array(self.Q, dtype=np.float32)
         self.R = np.array(self.R, dtype=np.float32)
         self.xf = np.array(self.xf, dtype=np.float32)
+        self.uf = np.array(self.uf, dtype=np.float32)
         self.interior_states_mean = np.array(self.interior_states_mean, dtype=np.float32)
         self.interior_states_std = np.array(self.interior_states_std, dtype=np.float32)
         self.boundary_states_mean = np.array(self.boundary_states_mean, dtype=np.float32)

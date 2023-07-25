@@ -96,6 +96,7 @@ class VHJBController(Controller):
         self.R = config.R
         self.R_inv = jnp.linalg.inv(self.R)
         self.xf = config.xf
+        self.uf = config.uf
         self.obs_min = config.obs_min
         self.obs_max = config.obs_max
 
@@ -154,14 +155,14 @@ class VHJBController(Controller):
 
     def system_additional_init(self) -> None:
         # Linearized the dynamics around the xf,
-        # Assume f(xf,0) = 0, which means xf is an equilibrium points with 0 input
-        uf = np.zeros((self.control_dim,), dtype=np.float32)
-        Alin, Blin = jax.jacobian(jax.jit(self.dynamics.dynamics_step), argnums=[0,1])(self.xf, uf)
+        # Assume f(xf,uf) = 0
+        Alin, Blin = jax.jacobian(jax.jit(self.dynamics.dynamics_step), argnums=[0,1])(self.xf, self.uf)
         self.P = scipy.linalg.solve_continuous_are(Alin, Blin, self.Q, self.R)
 
     def running_cost(self, x: Union[np.ndarray, jnp.ndarray], u:Union[np.ndarray, jnp.ndarray]) -> Union[np.ndarray, jnp.ndarray]:
         x_diff = self.dynamics.states_wrap(x - self.xf)
-        return x_diff.T @ self.Q @ x_diff + u.T @ self.R @ u
+        u_diff = u - self.uf
+        return x_diff.T @ self.Q @ x_diff + u_diff.T @ self.R @ u_diff
 
     def termination_cost(self, x: Union[np.ndarray, jnp.ndarray]) -> Union[np.ndarray, jnp.ndarray]:
         x_diff = self.dynamics.states_wrap(x-self.xf)
@@ -216,7 +217,7 @@ class VHJBController(Controller):
         """
         v_gradient, updated_states = self.get_v_gradient(params, states, x)
         f_1, f_2 = self.dynamics.get_control_affine_matrix(x)
-        u = jnp.clip(-self.R_inv @ f_2.T @ v_gradient / 2, self.umin, self.umax)
+        u = jnp.clip(-self.R_inv @ f_2.T @ v_gradient / 2 + self.uf, self.umin, self.umax)
         return u, v_gradient, updated_states
     
     def get_control_efforts(self, x):

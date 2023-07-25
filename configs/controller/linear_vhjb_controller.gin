@@ -39,5 +39,6 @@ VHJBControllerConfig.maximum_buffer_size = 1000000
 VHJBControllerConfig.Q = [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]
 VHJBControllerConfig.R = [[1]]
 VHJBControllerConfig.xf = [0,0,0,0]
+VHJBControllerConfig.uf = [0]
 VHJBControllerConfig.obs_min = [-4.8, -0.418, -1000, -1000]
 VHJBControllerConfig.obs_max = [4.8, 0.418, 1000, 1000]
