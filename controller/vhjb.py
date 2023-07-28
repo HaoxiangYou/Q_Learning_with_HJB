@@ -168,7 +168,7 @@ class VHJBController(Controller):
         x_diff = self.dynamics.states_wrap(x-self.xf)
         return x_diff.T @ self.P @ x_diff
     
-    def rollout_trajectory(self) -> List[Tuple[np.ndarray, np.ndarray, float, float]]:
+    def rollout_trajectory(self) -> List[Tuple[np.ndarray, float, float]]:
         trajectory = []
         x = self.dynamics.get_initial_state()
         done = 0.0
@@ -292,10 +292,12 @@ class VHJBController(Controller):
         for epoch in range(self.epochs):
             # sample additional trajectory
             trajectory_costs = 0
+            trajectory_lengths = 0
             self.train_mode = False
             for _ in range(self.num_of_trajectories_per_epoch):
                 trajectory = self.rollout_trajectory()
                 trajectory_costs += self.get_trajectory_cost(trajectory)
+                trajectory_lengths += len(trajectory)
                 self.replay_buffer.xs.extend(trajectory)
             # fit the value function
             total_losses = 0
@@ -316,6 +318,6 @@ class VHJBController(Controller):
 
             if (epoch+1) % 10 == 0:
                 if self.num_of_trajectories_per_epoch > 0:
-                    print(f"epoch:{epoch+1}, average trajectory cost:{trajectory_costs/self.num_of_trajectories_per_epoch:2f}")
+                    print(f"epoch:{epoch+1}, average trajectory cost:{trajectory_costs/self.num_of_trajectories_per_epoch:.2f}, average trajectory length:{trajectory_lengths/self.num_of_trajectories_per_epoch:.2f}")
                 print(f"epoch:{epoch+1}, total loss:{total_losses/len(self.dataloader):.5f}, regulation: {self.regularization:.1f},"\
                       f"hjb loss:{hjb_losses/len(self.dataloader):.5f}, termination loss:{termination_losses/len(self.dataloader):.5f}")
