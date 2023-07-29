@@ -289,6 +289,12 @@ class VHJBController(Controller):
     
     def train(self):
 
+        average_trajectory_cost_list = []
+        average_trajectory_length_list = []
+        average_total_loss_list = []
+        average_hjb_loss_list = []
+        average_termination_loss_list = []
+
         for epoch in range(self.epochs):
             # sample additional trajectory
             trajectory_costs = 0
@@ -316,8 +322,17 @@ class VHJBController(Controller):
                 self.update_counter = jax.jit(optax._src.numerics.safe_int32_increment)(self.update_counter)
                 self.regularization = self.regularization_scheduler(self.update_counter)
 
+            if self.num_of_trajectories_per_epoch > 0:
+                average_trajectory_cost_list.append(trajectory_costs/self.num_of_trajectories_per_epoch)
+                average_trajectory_length_list.append(trajectory_lengths/self.num_of_trajectories_per_epoch)
+            average_total_loss_list.append(total_losses/len(self.dataloader))
+            average_hjb_loss_list.append(hjb_losses/len(self.dataloader))
+            average_termination_loss_list.append(termination_losses/len(self.dataloader))
+
             if (epoch+1) % 10 == 0:
                 if self.num_of_trajectories_per_epoch > 0:
                     print(f"epoch:{epoch+1}, average trajectory cost:{trajectory_costs/self.num_of_trajectories_per_epoch:.2f}, average trajectory length:{trajectory_lengths/self.num_of_trajectories_per_epoch:.2f}")
                 print(f"epoch:{epoch+1}, total loss:{total_losses/len(self.dataloader):.5f}, regulation: {self.regularization:.1f},"\
                       f"hjb loss:{hjb_losses/len(self.dataloader):.5f}, termination loss:{termination_losses/len(self.dataloader):.5f}")
+                
+        return average_trajectory_cost_list, average_trajectory_length_list, average_total_loss_list, average_hjb_loss_list, average_termination_loss_list

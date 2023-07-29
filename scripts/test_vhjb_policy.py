@@ -199,7 +199,28 @@ def main():
 
     dynamics, nn_policy, model_based_controller = load_systems(env_name, dynamics_config, vhjb_controller_config)
 
-    nn_policy.train()
+    trajectory_cost, trajectory_length, total_loss, hjb_loss, termination_loss = nn_policy.train()
+
+    fig, ax = plt.subplots()
+    ax.plot(trajectory_cost, color="blue", label="average trajectory cost")
+    ax.set_xlabel("epochs")
+    ax.set_ylabel("average trajectory cost", color="blue")
+    ax2 = ax.twinx()
+    ax2.plot(trajectory_length, label="average trajectory length", color="red")
+    ax2.set_ylabel("average trajectory length", color="red")
+    lines, labels = ax.get_legend_handles_labels()
+    lines2, labels2 = ax2.get_legend_handles_labels()
+    ax.legend(lines + lines2, labels + labels2, loc='upper left')
+    ax.set_title("trajectory info vs epoch")
+
+    plt.figure()
+    plt.plot(total_loss, label="total loss")
+    plt.plot(hjb_loss, label="hjb loss")
+    plt.plot(termination_loss, label="termination loss")
+    plt.xlabel("epoch")
+    plt.ylabel("loss")
+    plt.legend()
+    plt.title("loss vs epoch")
     
     anim, fig = test_policy(nn_policy, dynamics, model_based_controller)
         
