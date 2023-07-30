@@ -167,8 +167,12 @@ class QuadrotorsWaypointsPlanner():
 
         full_state = np.array([x,y,theta,x_dot,y_dot,theta_dot])
 
-        u_1 = (self.dynamics.I / self.dynamics.r * theta_ddot - self.dynamics.m / np.sin(theta) * x_ddot) / 2
-        u_2 = (-self.dynamics.I / self.dynamics.r * theta_ddot- self.dynamics.m / np.sin(theta) * x_ddot) / 2
+        if not np.sin(theta) == 0:
+            u_1 = (self.dynamics.I / self.dynamics.r * theta_ddot - self.dynamics.m / np.sin(theta) * x_ddot) / 2
+            u_2 = (-self.dynamics.I / self.dynamics.r * theta_ddot- self.dynamics.m / np.sin(theta) * x_ddot) / 2
+        else:
+            u_1 = (self.dynamics.I / self.dynamics.r * theta_ddot + self.dynamics.m / np.cos(theta) * (y_ddot + self.dynamics.g)) / 2
+            u_2 = (-self.dynamics.I / self.dynamics.r * theta_ddot + self.dynamics.m / np.cos(theta) * (y_ddot + self.dynamics.g)) / 2
 
         u = np.array([u_1, u_2])
 
@@ -181,7 +185,7 @@ class QuadrotorsWaypointsPlanner():
             t_diff = 0
             coeff = np.zeros((self.dim, self.coeff.shape[1]))
             for i in range(self.dim):
-                coeff[i] = self.points[-1][i]
+                coeff[i][0] = self.points[-1][i]
         else:
             t_diff = t-self.cumulated_t[index]
             coeff = self.coeff[:,index, :]
