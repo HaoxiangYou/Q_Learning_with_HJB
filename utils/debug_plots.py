@@ -2,7 +2,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import matplotlib.pyplot as plt
-from typing import Union, Callable, Tuple
+from typing import Union, Callable
 from flax.core.frozen_dict import FrozenDict
 from controller.vhjb import ValueFunctionApproximator
 from utils.utils import keep_first_element
