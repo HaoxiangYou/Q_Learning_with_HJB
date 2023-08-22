@@ -12,7 +12,7 @@ from functools import partial
 from controller.controller_basic import Controller
 from dynamics.dynamics_basic import Dynamics
 from configs.controller.vhjb_controller_config import VHJBControllerConfig
-from utils.utils import np_collate
+from utils.utils import np_collate, solve_continuous_are
 
 class ValueFunctionApproximator(nn.Module):
     features: Sequence[int]
@@ -154,10 +154,10 @@ class VHJBController(Controller):
         self.dataloader = DataLoader(self.replay_buffer, batch_size=self.batch_size, shuffle=True, collate_fn=np_collate, drop_last=True)
 
     def system_additional_init(self) -> None:
-        # Linearized the dynamics around the xf,
+        # Linearized the dynamics around the xf, uf
         # Assume f(xf,uf) = 0
         Alin, Blin = jax.jacobian(jax.jit(self.dynamics.dynamics_step), argnums=[0,1])(self.xf, self.uf)
-        self.P = scipy.linalg.solve_continuous_are(Alin, Blin, self.Q, self.R)
+        self.P = solve_continuous_are(Alin, Blin, self.Q, self.R)
 
     def running_cost(self, x: Union[np.ndarray, jnp.ndarray], u:Union[np.ndarray, jnp.ndarray]) -> Union[np.ndarray, jnp.ndarray]:
         x_diff = self.dynamics.states_wrap(x - self.xf)
