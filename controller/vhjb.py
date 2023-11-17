@@ -290,6 +290,7 @@ class VHJBController(Controller):
     def train(self):
 
         average_trajectory_cost_list = []
+        std_trajectory_cost_list = []
         average_trajectory_length_list = []
         average_total_loss_list = []
         average_hjb_loss_list = []
@@ -297,12 +298,12 @@ class VHJBController(Controller):
 
         for epoch in range(self.epochs):
             # sample additional trajectory
-            trajectory_costs = 0
+            trajectory_costs_list = [] 
             trajectory_lengths = 0
             self.train_mode = False
             for _ in range(self.num_of_trajectories_per_epoch):
                 trajectory = self.rollout_trajectory()
-                trajectory_costs += self.get_trajectory_cost(trajectory)
+                trajectory_costs_list.append(self.get_trajectory_cost(trajectory))
                 trajectory_lengths += len(trajectory)
                 self.replay_buffer.xs.extend(trajectory)
             # fit the value function
@@ -323,7 +324,8 @@ class VHJBController(Controller):
                 self.regularization = self.regularization_scheduler(self.update_counter)
 
             if self.num_of_trajectories_per_epoch > 0:
-                average_trajectory_cost_list.append(trajectory_costs/self.num_of_trajectories_per_epoch)
+                average_trajectory_cost_list.append(sum(trajectory_costs_list)/self.num_of_trajectories_per_epoch)
+                std_trajectory_cost_list.append(np.var(np.array(trajectory_costs_list))**0.5)
                 average_trajectory_length_list.append(trajectory_lengths/self.num_of_trajectories_per_epoch)
             
             if len(self.dataloader) != 0:
@@ -333,9 +335,9 @@ class VHJBController(Controller):
 
             if (epoch+1) % 10 == 0:
                 if self.num_of_trajectories_per_epoch > 0:
-                    print(f"epoch:{epoch+1}, average trajectory cost:{trajectory_costs/self.num_of_trajectories_per_epoch:.2f}, average trajectory length:{trajectory_lengths/self.num_of_trajectories_per_epoch:.2f}")
+                    print(f"epoch:{epoch+1}, average trajectory cost:{sum(trajectory_costs_list)/self.num_of_trajectories_per_epoch:.2f}, average trajectory length:{trajectory_lengths/self.num_of_trajectories_per_epoch:.2f}")
                 if len(self.dataloader) != 0:
                     print(f"epoch:{epoch+1}, total loss:{total_losses/len(self.dataloader):.5f}, regulation: {self.regularization:.1f},"\
                       f"hjb loss:{hjb_losses/len(self.dataloader):.5f}, termination loss:{termination_losses/len(self.dataloader):.5f}")
                 
-        return average_trajectory_cost_list, average_trajectory_length_list, average_total_loss_list, average_hjb_loss_list, average_termination_loss_list
+        return average_trajectory_cost_list, std_trajectory_cost_list, average_trajectory_length_list, average_total_loss_list, average_hjb_loss_list, average_termination_loss_list

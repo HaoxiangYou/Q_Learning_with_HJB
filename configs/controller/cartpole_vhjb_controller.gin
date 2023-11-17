@@ -3,7 +3,7 @@ VHJBControllerConfig.seed = 0
 VHJBControllerConfig.epsilon = 1e-10
 
 # neural model hyperparameters
-VHJBControllerConfig.features = [128, 128]
+VHJBControllerConfig.features = [128, 128, 64]
 VHJBControllerConfig.normalization_mean = [0, 0, 0, 0]
 VHJBControllerConfig.normalization_std = [1.0, 1.0, 1.0, 1.0]
 VHJBControllerConfig.epsilon_scalar = 1e-3
