@@ -49,3 +49,11 @@ class Quadrotors2DConfig(DynamicsConfig):
     m: float
     r: float
     I: float
+
+@gin.configurable
+@dataclass
+class NearHoverQuadcopterConfig(DynamicsConfig):
+    g: float
+    m: float
+    kT: float
+    n0: float
